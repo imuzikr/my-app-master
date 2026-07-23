@@ -155,6 +155,8 @@
     .doc-no { color: var(--teal); font-size: .79rem; font-weight: 900; letter-spacing: .1em; }
     .status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; color: #166534; border-radius: 999px; background: var(--green-soft); font-size: .75rem; font-weight: 850; white-space: nowrap; }
     .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .status.conditional { color: #8c4800; background: var(--amber-soft); }
+    .status.conditional::before { background: var(--amber); }
     .doc-body { display: flex; flex: 1; flex-direction: column; padding: 12px 22px 22px; }
     .doc h3 { margin: 0; font-size: 1.28rem; }
     .doc-desc { color: var(--muted); }
@@ -252,24 +254,25 @@
     <header class="hero">
       <p class="eyebrow">Student · Teacher Web App · Documentation Map</p>
       <h1>학생·교사 웹 앱 설계 문서<br>마스터 인덱스</h1>
-      <p class="hero-copy">GitHub Pages·Firebase와 Apps Script·Google Sheets를 검토하며 만든 문서를 한곳에서 찾고, 확정된 보안 원칙과 아직 결정하지 않은 설계 선택을 분리해 관리합니다. 1부는 학생·교사 화면 분리, 인증, 데이터 권한과 Firebase 운영 전 점검까지 완결했으며, 다음 단계에서는 React·Next.js와 서버리스 배포를 다룹니다.</p>
+      <p class="hero-copy">GitHub Pages·Firebase와 Apps Script·Google Sheets를 검토하며 만든 문서를 한곳에서 찾고, 확정된 보안 원칙과 아직 결정하지 않은 설계 선택을 분리해 관리합니다. 1부는 학생·교사 화면 분리, 인증, 데이터 권한과 Firebase 운영 전 점검까지 다루며, 1.1판에서는 복사 안전성·약관 중단 조건·읽기 경로를 보완했습니다.</p>
       <div class="hero-pills">
         <span class="hero-pill">완성 문서 12개</span>
         <span class="hero-pill">두 가지 기술 경로</span>
         <span class="hero-pill">공통 보안 원칙</span>
-        <span class="hero-pill">1부 보안 기준 완결</span>
+        <span class="hero-pill">1부 공개 검토판 1.1</span>
       </div>
     </header>
 
     <div class="top-summary" role="region" aria-label="문서 프로젝트 현황">
-      <div class="summary-item summary-main"><span>현재 단계</span><strong>1부 · Firebase 중심 보안 기준 완결</strong></div>
+      <div class="summary-item summary-main"><span>현재 단계</span><strong>1부 · 수정·보완 공개 검토판</strong></div>
       <div class="summary-item"><span>완성 문서</span><strong>12개 · 모두 연결됨</strong></div>
       <div class="summary-item"><span>현재 결론</span><strong>Auth + Rules + 서버 검증</strong></div>
-      <div class="summary-item"><span>인덱스 버전</span><strong>1.0 · 2026-07-23</strong></div>
+      <div class="summary-item"><span>인덱스 버전</span><strong>1.1 · 2026-07-24</strong></div>
     </div>
 
     <nav aria-label="마스터 인덱스 목차">
       <a href="#purpose">사용법</a>
+      <a href="#safety-gate">0장 안전 등급</a>
       <a href="#map">문서 지도</a>
       <a href="#paths">읽는 순서</a>
       <a href="#documents">문서 목록</a>
@@ -298,6 +301,30 @@
       </div>
     </section>
 
+    <section id="safety-gate">
+      <span class="section-no">00A · SAFETY GATE BEFORE BUILDING</span>
+      <h2>기술 설계 전에 저장할 데이터의 위험 등급부터 정합니다</h2>
+      <p class="lead">“보안 코드가 있다”는 사실과 “학교에서 이 데이터를 수집·처리해도 된다”는 판단은 다릅니다. 아래 등급은 구현을 시작할지, 기관 검토를 먼저 받을지 결정하는 1부의 입구입니다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>등급</th><th>예시</th><th>진행 조건</th><th>기본 판단</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill fixed">A · 낮음</span></td><td>이름·학번 없는 일회성 의견, 익명 퀴즈</td><td>최소 수집, 짧은 보존, 기본 권한 검사</td><td>작은 시범 운영 가능</td></tr>
+            <tr><td><span class="pill plan">B · 식별</span></td><td>학생 식별 정보, 제출 이력, 수업 결과</td><td>권한표, 삭제일, 학교 지침·승인, 거부 테스트</td><td>승인 조건을 확인한 뒤 진행</td></tr>
+            <tr><td><span class="pill open">C · 평가</span></td><td>성적, 수행평가 결과, 장기 누적 관찰 기록</td><td>기관 승인, 전문 인증, 보존·정정·감사 절차</td><td>개인 판단으로 바로 배포하지 않음</td></tr>
+            <tr><td><span class="pill" style="color:#9d1d35;background:var(--red-soft)">D · 민감</span></td><td>상담, 건강, 행동, 연락처, 가정환경 등</td><td>법·교육청·학교 정책과 전문 시스템 검토</td><td>교사 개인 앱으로 개발·배포하지 않음</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout danger">
+        <strong>외부 AI 전송은 별도 중단 조건입니다.</strong>
+        데이터 등급과 관계없이 학생 응답을 외부 AI 서비스로 보내기 전에는 적용 제품의 최신 약관, 연령 요건, 기관 계약,
+        데이터 보관·학습 이용 조건을 확인합니다. 조건을 확인하지 못하면 AI 기능을 구현하지 않습니다.
+      </div>
+    </section>
+
     <section id="map">
       <span class="section-no">01 · DOCUMENT MAP</span>
       <h2>전체 문서는 세 층으로 연결됩니다</h2>
@@ -321,21 +348,21 @@
         <article class="path">
           <header class="path-head"><h3>A. GitHub Pages + Firebase 경로</h3><p>정적 화면 호스팅 + Firebase 데이터·인증</p></header>
           <div class="path-body">
-            <div class="path-step"><div class="step-no">1</div><div><strong>DOC 01 또는 DOC 02</strong><small>두 Pages와 한 Pages 중 화면·배포 구조를 먼저 비교합니다.</small></div></div>
-            <div class="path-step"><div class="step-no">2</div><div><strong>DOC 03</strong><small>OAuth 없이 비밀번호 계정을 쓸 때 공통 비밀번호와 Firebase Auth를 구분합니다.</small></div></div>
-            <div class="path-step"><div class="step-no">3</div><div><strong>DOC 04</strong><small>로그인, Authentication, OAuth와 Firestore 권한을 정확히 정리합니다.</small></div></div>
-            <div class="path-step"><div class="step-no">4</div><div><strong>DOC 08 · 10 · 11</strong><small>실제 폴더·SDK 흐름, 브라우저와 서버의 경계, Firestore 문서 구조와 Rules를 연결합니다.</small></div></div>
-            <div class="path-step"><div class="step-no">5</div><div><strong>DOC 12</strong><small>JWT, Custom Claims, App Check와 운영 전 거부 테스트까지 최종 기준으로 점검합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">1</div><div><strong>0장 안전 등급</strong><small>저장할 데이터와 외부 AI 사용이 개인 개발 범위인지 먼저 판단합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">2</div><div><strong>DOC 08</strong><small>한 Pages 학생·교사 앱의 전체 구현 흐름을 대표 실습으로 읽습니다.</small></div></div>
+            <div class="path-step"><div class="step-no">3</div><div><strong>DOC 04</strong><small>로그인, Authentication, OAuth와 Firestore 권한을 구분합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">4</div><div><strong>DOC 12</strong><small>JWT, Claims, App Check, Rules와 거부 테스트를 배포 전 통과 기준으로 사용합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">＋</div><div><strong>DOC 01·02·03·09·10·11은 필요할 때</strong><small>배포 비교, 비밀번호, AI, CORS, 데이터 구조를 더 깊이 확인하는 선택·참고 문서입니다.</small></div></div>
           </div>
         </article>
 
         <article class="path apps">
           <header class="path-head"><h3>B. Apps Script + Sheets 경로</h3><p>Apps Script 웹 앱 + Google Sheets 데이터</p></header>
           <div class="path-body">
-            <div class="path-step"><div class="step-no">1</div><div><strong>DOC 05</strong><small>한 배포에서 여러 HTML을 반환하는 방식과 단일 index 전환을 비교합니다.</small></div></div>
-            <div class="path-step"><div class="step-no">2</div><div><strong>DOC 06</strong><small>공동 비밀번호, Google 로그인, OAuth와 Apps Script 실행 주체를 점검합니다.</small></div></div>
-            <div class="path-step"><div class="step-no">3</div><div><strong>DOC 07</strong><small>접근 코드가 꼭 필요할 때 HMAC 권장 구조와 바이브 코딩용 최소 구조를 구현 기준으로 확인합니다.</small></div></div>
-            <div class="path-step"><div class="step-no">4</div><div><strong>실제 운영 URL 시험</strong><small>학생·교사·시크릿 모드에서 세션과 서버 함수의 권한 거부를 확인합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">1</div><div><strong>0장 안전 등급</strong><small>민감하거나 장기적인 기록이면 맞춤형 Apps Script 인증을 선택하지 않습니다.</small></div></div>
+            <div class="path-step"><div class="step-no">2</div><div><strong>DOC 05</strong><small>한 배포에서 여러 HTML을 반환하는 방식과 단일 index 전환을 비교합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">3</div><div><strong>DOC 06</strong><small>공동 비밀번호, Google 로그인, OAuth와 Apps Script 실행 주체를 점검합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">4</div><div><strong>DOC 07은 접근 코드가 꼭 필요할 때만</strong><small>개선된 맞춤형 구조도 저위험·소규모 앱에 한정하고 실제 URL에서 거부 테스트를 수행합니다.</small></div></div>
           </div>
         </article>
       </div>
@@ -435,9 +462,9 @@
           <div class="doc-top"><span class="doc-no">DOC 07 · APPS SCRIPT / IMPLEMENTATION</span><span class="status">완성</span></div>
           <div class="doc-body">
             <h3>Apps Script 접근 코드 보안 구현 가이드</h3>
-            <p class="doc-desc">HMAC-SHA-256을 사용하는 강한 맞춤형 구조와 비민감 활동용 최소 구조를 나누고, AI 요청문·필수 코드 형태·18개 검증 테스트를 제공합니다.</p>
+            <p class="doc-desc">HMAC-SHA-256을 사용하는 개선된 맞춤형 구조와 비민감 활동용 최소 구조를 나누고, AI 요청문·필수 코드 형태·18개 검증 테스트를 제공합니다.</p>
             <div class="meta"><div><span>적용 범위</span><strong>Apps Script + Sheets</strong></div><div><span>인증</span><strong>개별 접근 코드</strong></div><div><span>보안 핵심</span><strong>HMAC + 세션 + 역할 검사</strong></div><div><span>관련 문서</span><strong>DOC 05 · 06</strong></div></div>
-            <p><strong>핵심 결론:</strong> 강한 구조는 평문 코드를 저장하지 않습니다. 최소 구조에서도 모든 데이터 함수의 서버 세션·역할 검사는 생략할 수 없습니다.</p>
+            <p><strong>핵심 결론:</strong> 개선된 구조는 평문 코드를 저장하지 않지만 전문 인증과 동등하지 않습니다. 모든 데이터 함수의 서버 세션·역할 검사는 생략할 수 없습니다.</p>
             <div class="tags"><span class="tag indigo">Apps Script</span><span class="tag">HMAC-SHA-256</span><span class="tag amber">AI 복사 키트</span></div>
             <a class="doc-action" href="apps-script-access-code-security-guide.html">문서 열기</a>
           </div>
@@ -456,12 +483,12 @@
         </article>
 
         <article class="doc" data-topics="firebase server security gemini callable functions api feedback" data-search="gemini api firebase functions callable onCall httpsCallable secret manager 교사 피드백 초안 학생 읽기 전용 서버">
-          <div class="doc-top"><span class="doc-no">DOC 09 · FIREBASE / AI SERVER</span><span class="status">완성</span></div>
+          <div class="doc-top"><span class="doc-no">DOC 09 · FIREBASE / AI SERVER</span><span class="status conditional">조건부</span></div>
           <div class="doc-body">
             <h3>Gemini 피드백과 Firebase 서버 기능</h3>
-            <p class="doc-desc">학생 응답을 Gemini로 보내 교사용 피드백 초안을 만들 때 Firebase Functions, Callable Function, Secret Manager와 검토 후 공개 흐름을 설명합니다.</p>
+            <p class="doc-desc">기관 승인과 적용 제품의 연령·약관 조건을 통과한 경우에만, Firebase Functions·Callable·Secret Manager와 검토 후 공개 흐름을 설명합니다.</p>
             <div class="meta"><div><span>실행 위치</span><strong>Firebase 서버</strong></div><div><span>호출</span><strong>httpsCallable → onCall</strong></div><div><span>비밀정보</span><strong>Secret Manager</strong></div><div><span>관련 문서</span><strong>DOC 10 · 12</strong></div></div>
-            <p><strong>핵심 결론:</strong> API 키와 AI 호출은 공개 JavaScript가 아니라 서버에서 실행하고, 교사 권한·입력·결과 공개 상태를 서버가 검증해야 합니다.</p>
+            <p><strong>핵심 결론:</strong> Gemini Developer API의 학생 대상 사용 제한을 먼저 확인합니다. 진행 가능한 경우에도 API 키와 호출은 서버에 두고 교사 권한과 공개 상태를 검증합니다.</p>
             <div class="tags"><span class="tag">Firebase Functions</span><span class="tag indigo">Callable</span><span class="tag amber">Gemini API</span></div>
             <a class="doc-action" href="firebase-gemini-feedback-guide.html">문서 열기</a>
           </div>
@@ -593,19 +620,17 @@
         <div class="term"><strong>JWT · Firebase ID Token</strong><p>Header, Payload, Signature로 구성된 서명된 토큰입니다. Firebase 로그인 뒤 UID를 전달하며 서버는 서명·발급자·대상·만료를 검증합니다. Payload는 암호화가 아닙니다.</p></div>
         <div class="term"><strong>Custom Claims</strong><p>권한 있는 서버가 Firebase 사용자 토큰에 넣는 작은 역할 정보입니다. 교사·관리자처럼 접근 제어에 필요한 값만 사용합니다.</p></div>
         <div class="term"><strong>App Check</strong><p>요청이 등록된 정상 앱 환경에서 왔는지 추가로 확인하는 남용 방어 계층입니다. 사용자 인증과 데이터 권한 검사를 대신하지 않습니다.</p></div>
-        <div class="term"><strong>Callable Function</strong><p>Firebase Functions에서 <code>onCall()</code>로 만든 서버 함수입니다. 클라이언트의 <code>httpsCallable()</code> 호출과 연결되어 인증 토큰·App Check·오류 형식을 다루기 쉽게 해 줍니다.</p></div>
+        <div class="term"><strong>Callable Function</strong><p>Firebase Functions에서 <code>onCall()</code>로 만든 서버 함수입니다. 포함된 인증·App Check Token과 오류 형식을 다루기 쉽게 하지만 로그인을 자동으로 필수화하지는 않습니다. 핸들러가 <code>request.auth</code>와 역할을 확인하고 App Check 강제 적용을 별도로 설정합니다.</p></div>
       </div>
     </section>
 
     <section id="roadmap">
       <span class="section-no">08 · DOCUMENT ROADMAP</span>
-      <h2>1부를 닫고 2부로 넘어가는 순서</h2>
+      <h2>1부 이후에는 제작·배포와 학교 운영을 분리합니다</h2>
       <div class="roadmap">
-        <div class="road"><strong>PART 1 · DONE</strong><p><strong>DOC 12 · Firebase 앱 최종 보안 기준</strong><br>역할표, 문서 구조, JWT, Custom Claims, App Check, Rules와 운영 전 거부 테스트를 통합했습니다.</p><span class="pill fixed">완결</span></div>
-        <div class="road"><strong>PART 2 · 01</strong><p><strong>React·Vite와 Next.js 구조 선택</strong><br>정적 SPA, 서버 렌더링, API 경로와 비전공 교사의 유지보수 난도를 비교합니다.</p><span class="pill plan">다음 권장</span></div>
-        <div class="road"><strong>PART 2 · 02</strong><p><strong>Netlify·Vercel 배포와 서버리스 함수</strong><br>프런트엔드 배포, 함수 실행 위치, 요청 흐름과 Firebase 연결을 단계적으로 정리합니다.</p><span class="pill open">예정</span></div>
-        <div class="road"><strong>PART 2 · 03</strong><p><strong>환경 변수와 API 비밀키의 실제 보안</strong><br>환경 변수 이름만 숨기는 오해를 바로잡고, 키를 읽는 코드가 서버에서 실행되는지 확인하는 기준을 만듭니다.</p><span class="pill open">예정</span></div>
-        <div class="road"><strong>PART 2 · 04</strong><p><strong>운영·관찰·백업·사고 대응</strong><br>로그, 비용 알림, 데이터 보존·삭제, 백업, 권한 회수와 장애 대응을 실제 운영 체크리스트로 연결합니다.</p><span class="pill open">예정</span></div>
+        <div class="road"><strong>PART 1 · 1.1</strong><p><strong>학생·교사 앱 구조와 보안 기준</strong><br>역할표, 문서 구조, JWT, Claims, App Check, 안전한 Rules 예제와 거부 테스트를 통합했습니다.</p><span class="pill fixed">현재</span></div>
+        <div class="road"><strong>PART 2 · BUILD</strong><p><strong>안전하게 만들고 배포하기</strong><br>React·Vite와 Next.js, Git, 환경 변수, 서버리스 함수, Emulator 테스트, CI 배포, 업데이트와 롤백을 다룹니다.</p><span class="pill plan">다음 권장</span></div>
+        <div class="road"><strong>PART 3 · RUN</strong><p><strong>학교에서 지속적으로 운영하기</strong><br>개인정보 최소화, 보존·삭제, 로그·비용, 백업·복구, 학년 변경·퇴직자 권한 회수, 사고 대응과 접근성을 다룹니다.</p><span class="pill open">예정</span></div>
       </div>
 
       <div class="callout">
@@ -615,17 +640,17 @@
 
     <section id="integration" class="final-box">
       <span class="section-no" style="color:#99f6e4">09 · FINAL INTEGRATION PLAN</span>
-      <h2>문서 프로젝트의 두 부분</h2>
-      <p class="lead">1부는 학생·교사 Firebase 앱의 데이터·인증·권한 보안을 닫습니다. 2부는 React·Next.js와 Netlify·Vercel을 이용해 같은 원칙을 실제 서비스 배포 구조로 확장합니다.</p>
+      <h2>문서 프로젝트의 세 부분</h2>
+      <p class="lead">1부는 학생·교사 앱의 데이터·인증·권한 보안을 정리합니다. 2부는 같은 원칙을 실제 제작·배포 구조로 확장하고, 3부는 학교 현장의 장기 운영·개인정보·복구·사고 대응 기준을 다룹니다.</p>
       <div class="grid grid-3" style="margin-top:20px">
-        <article class="card"><h3 style="color:var(--teal)">Part 1 · 보안 기반 · 완결</h3><ol><li>학생·교사 화면과 신뢰 경계</li><li>Authentication·JWT·역할</li><li>Firestore 문서 구조·Rules</li><li>Custom Claims·App Check·테스트</li></ol></article>
-        <article class="card"><h3 style="color:var(--indigo)">Part 2 · 앱 구조와 배포</h3><ol><li>React·Vite와 Next.js</li><li>Netlify·Vercel</li><li>서버리스 함수·API</li><li>환경 변수·비밀키</li></ol></article>
-        <article class="card"><h3 style="color:var(--blue)">운영 공통 기준</h3><ol><li>개인정보 최소화·보존·삭제</li><li>로그·비용·오류 관찰</li><li>백업·권한 회수</li><li>배포 전 회귀 테스트</li></ol></article>
+        <article class="card"><h3 style="color:var(--teal)">Part 1 · 보안 기반 · 1.1</h3><ol><li>학생·교사 화면과 신뢰 경계</li><li>Authentication·JWT·역할</li><li>Firestore 문서 구조·Rules</li><li>Custom Claims·App Check·테스트</li></ol></article>
+        <article class="card"><h3 style="color:var(--indigo)">Part 2 · 안전한 제작·배포</h3><ol><li>React·Vite와 Next.js</li><li>Git·CI·Netlify·Vercel</li><li>서버리스 함수·API</li><li>환경 변수·테스트·롤백</li></ol></article>
+        <article class="card"><h3 style="color:var(--blue)">Part 3 · 학교 운영</h3><ol><li>개인정보 최소화·보존·삭제</li><li>로그·비용·오류 관찰</li><li>백업·복구·권한 회수</li><li>사고 대응·접근성</li></ol></article>
       </div>
       <p style="margin-top:20px"><strong>연결 기준:</strong> 2부의 어떤 프레임워크와 호스팅을 선택하더라도 DOC 12의 신원·역할·소유권·필드·앱 검증과 거부 테스트를 그대로 유지합니다.</p>
     </section>
 
-    <footer class="footer">학생·교사 웹 앱 설계 문서 마스터 인덱스 · 버전 1.0 · 2026-07-23</footer>
+    <footer class="footer">학생·교사 웹 앱 설계 문서 마스터 인덱스 · 버전 1.1 · 기술 검토 2026-07-24</footer>
   </main>
 
   <button class="print" type="button" onclick="window.print()" aria-label="문서 인쇄 또는 PDF 저장">인쇄 · PDF 저장</button>

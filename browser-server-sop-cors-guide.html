@@ -489,6 +489,8 @@
       <div class="summary-item"><span>후반 핵심</span><strong>인증·권한과 구분</strong></div>
     </div>
 
+    <p class="fine" style="margin:16px 0 18px;padding:12px 15px;border:1px solid #dce3eb;border-radius:12px;background:#fff"><strong>문서 정보</strong> · DOC 10 · 참고 · 중급 · 약 25분 · 개념 가이드 · 선행: DOC 08 · 관련: DOC 09·12 · 기술 검토 2026-07-24 · <a href="web-app-design-master-index.html">마스터 인덱스</a></p>
+
     <nav aria-label="문서 목차">
       <a href="#app">현재 앱</a>
       <a href="#function-words">함수 구분</a>
@@ -751,8 +753,8 @@ Access-Control-Allow-Headers: authorization, content-type, x-firebase-appcheck</
           <div class="seq browser"><span class="seq-no">1</span><strong>SDK 호출</strong><small>교사 화면이 <code>httpsCallable()</code> 실행</small></div>
           <div class="seq browser"><span class="seq-no">2</span><strong>브라우저 판단</strong><small>교차 출처와 요청 헤더 확인</small></div>
           <div class="seq infra"><span class="seq-no">3</span><strong>OPTIONS</strong><small>필요하면 사전 요청과 CORS 응답</small></div>
-          <div class="seq browser"><span class="seq-no">4</span><strong>실제 POST</strong><small>요청 데이터와 Firebase ID Token 전달</small></div>
-          <div class="seq infra"><span class="seq-no">5</span><strong>토큰 검증</strong><small>Callable 인프라가 형식·Auth·App Check 확인</small></div>
+          <div class="seq browser"><span class="seq-no">4</span><strong>실제 POST</strong><small>요청 데이터와, 로그인 상태라면 Firebase ID Token 전달</small></div>
+          <div class="seq infra"><span class="seq-no">5</span><strong>전달된 토큰 검증</strong><small>Callable 인프라가 형식과 포함된 Auth·App Check Token 확인</small></div>
           <div class="seq handler"><span class="seq-no">6</span><strong>서버 함수</strong><small>교사 역할·담당 범위 확인 후 Gemini 호출</small></div>
           <div class="seq handler"><span class="seq-no">7</span><strong>결과 반환</strong><small>초안 저장 후 성공·오류를 SDK에 전달</small></div>
         </div>
@@ -772,11 +774,26 @@ Access-Control-Allow-Headers: authorization, content-type, x-firebase-appcheck</
         </div>
 
         <div class="callout danger">
-          <strong>서버 함수의 존재만으로 안전해지지는 않습니다.</strong><br>
-          Callable 인프라가 유효한 로그인 토큰을 확인해도 그 사용자가 교사라는 뜻은 아닙니다. 개발자의 <code>onCall()</code> 함수가 UID의 교사 역할과 담당 범위를 다시 확인해야 합니다.
+          <strong>Callable은 로그인을 자동으로 필수화하지 않습니다.</strong><br>
+          <code>Authorization</code>과 App Check 헤더는 Callable 프로토콜에서 선택 항목입니다. 전달된 토큰이 잘못되면 인프라가 거부하지만,
+          토큰이 없으면 핸들러의 <code>request.auth</code> 또는 <code>request.app</code>이 비어 있을 수 있습니다. 교사 전용 함수는 가장 먼저
+          <code>request.auth</code>의 존재를 확인하고, 이어서 교사 역할과 담당 학급을 검사해야 합니다. App Check도
+          <code>enforceAppCheck: true</code>를 설정해야 누락된 토큰을 실제로 차단합니다.
         </div>
 
-        <p class="fine">공식 참고: <a href="https://firebase.google.com/docs/functions/callable-reference" target="_blank" rel="noopener noreferrer">Callable Function 통신 규격</a> · <a href="https://firebase.google.com/docs/functions/callable" target="_blank" rel="noopener noreferrer">앱에서 Callable Function 호출하기</a></p>
+        <pre><code>export const generateFeedbackDraft = onCall(
+  { enforceAppCheck: true },
+  async (request) =&gt; {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    }
+
+    await verifyTeacherScope(request.auth.uid, request.data.submissionId);
+    // 권한 확인 뒤에만 제출물 조회와 외부 AI 호출을 수행합니다.
+  }
+);</code></pre>
+
+        <p class="fine">공식 참고: <a href="https://firebase.google.com/docs/functions/callable-reference" target="_blank" rel="noopener noreferrer">Callable Function 통신 규격</a> · <a href="https://firebase.google.com/docs/functions/callable" target="_blank" rel="noopener noreferrer">앱에서 Callable Function 호출하기</a> · <a href="https://firebase.google.com/docs/app-check/cloud-functions" target="_blank" rel="noopener noreferrer">Callable Function의 App Check 강제 적용</a></p>
       </section>
 
       <section id="direct">
@@ -864,19 +881,19 @@ Access-Control-Allow-Headers: authorization, content-type, x-firebase-appcheck</
         <div class="layers">
           <div class="layer"><span class="layer-name">1 · SOP</span><strong>브라우저의 기본 출처 격리</strong><p>다른 출처의 응답을 JavaScript가 마음대로 읽지 못하게 합니다.</p></div>
           <div class="layer"><span class="layer-name">2 · CORS</span><strong>필요한 출처 통신 허용</strong><p>서버가 허용 조건을 응답하고 브라우저가 집행합니다.</p></div>
-          <div class="layer"><span class="layer-name">3 · Auth</span><strong>Firebase ID Token 검증</strong><p>Callable 인프라가 인증된 UID를 확인해 <code>request.auth</code>로 제공합니다.</p></div>
+          <div class="layer"><span class="layer-name">3 · Auth</span><strong>Firebase ID Token 검증</strong><p>요청에 Token이 포함되면 Callable 인프라가 검증해 <code>request.auth</code>로 제공합니다. 핸들러가 값의 존재를 확인해야 로그인이 필수가 됩니다.</p></div>
           <div class="layer"><span class="layer-name">4 · Role</span><strong>교사 역할과 담당 범위 검사</strong><p>개발자가 만든 서버 함수가 members 문서와 대상 제출물을 확인합니다.</p></div>
           <div class="layer"><span class="layer-name">5 · Data</span><strong>소유권과 필드 규칙</strong><p>Firestore Rules 또는 서버 코드가 학생 자신의 데이터만 허용합니다.</p></div>
         </div>
 
         <div class="callout danger">
           <strong>SOP·CORS를 인증이나 권한으로 사용하면 안 됩니다.</strong><br>
-          CORS가 GitHub Pages 출처를 허용해도 그 출처에는 학생 화면과 교사 화면이 함께 있습니다. 브라우저 밖의 프로그램은 CORS 정책을 보안 장벽으로 따르지 않을 수도 있습니다. 실제 보호는 Firebase ID Token 검증, 교사 역할 검사, 담당 범위 확인, Firestore Rules와 App Check를 함께 사용해야 합니다.
+          CORS가 GitHub Pages 출처를 허용해도 그 출처에는 학생 화면과 교사 화면이 함께 있습니다. 브라우저 밖의 프로그램은 CORS 정책을 보안 장벽으로 따르지 않을 수도 있습니다. 실제 보호는 핸들러의 로그인 필수 검사, Firebase ID Token 검증, 교사 역할 검사, 담당 범위 확인, Firestore Rules와 강제 적용된 App Check를 함께 사용해야 합니다.
         </div>
 
         <div class="callout good">
           <strong>현재 앱의 올바른 한 문장</strong><br>
-          브라우저의 Firebase SDK가 다른 출처의 Firebase 서버에 요청하고, SOP·CORS가 브라우저 통신을 조정하며, Callable 인프라가 요청 형식과 토큰을 확인하고, 개발자가 만든 서버 함수가 교사 권한과 실제 업무를 최종 판단합니다.
+          브라우저의 Firebase SDK가 다른 출처의 Firebase 서버에 요청하고, SOP·CORS가 브라우저 통신을 조정하며, Callable 인프라가 요청 형식과 포함된 토큰을 확인하고, 개발자가 만든 서버 함수가 로그인 필수 여부·교사 권한·실제 업무를 최종 판단합니다.
         </div>
       </section>
 

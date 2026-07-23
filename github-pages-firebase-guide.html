@@ -469,6 +469,8 @@
       <div class="verdict">종합 평가 · 구현 가능하며 확장성은 높지만, 인증과 Rules 설계가 필수</div>
     </header>
 
+    <p class="fine" style="margin:16px 0 18px;padding:12px 15px;border:1px solid #dce3eb;border-radius:12px;background:#fff"><strong>문서 정보</strong> · DOC 01 · 참고 · 중급 · 약 18분 · 개념·설계 비교 · 다음: DOC 04 또는 DOC 08 · 기술 검토 2026-07-24 · <a href="web-app-design-master-index.html">마스터 인덱스</a></p>
+
     <nav aria-label="문서 목차">
       <a href="#summary">한눈에 보기</a>
       <a href="#architecture">구조와 특징</a>
@@ -642,7 +644,8 @@
   updatedAt        // 수정 시각
   teacherFeedback  // 교사 피드백</code></pre>
 
-      <h3>교사 1명·소규모 수업용 최소 개념 예시</h3>
+      <h3>교사 1명·소규모 수업용 축약 예시</h3>
+      <p class="fine"><strong>설명용 일부 코드 — 복사·배포 금지.</strong> 아래 예시는 학생이 수정할 수 있는 필드를 처음부터 제한하지만, 학급 멤버십·자료형·길이·제출 기한·여러 교사 처리는 생략합니다.</p>
       <pre><code>rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -661,16 +664,30 @@ service cloud.firestore {
     }
 
     match /submissions/{studentUid} {
-      // 학생은 자기 문서만 읽을 수 있고, 교사는 전체를 읽을 수 있음
-      allow read: if isOwner(studentUid) || isTeacher();
+      // 학생은 자기 문서 하나만, 교사는 목록까지 읽을 수 있음
+      allow get: if isOwner(studentUid) || isTeacher();
+      allow list: if isTeacher();
 
-      // 학생은 자기 UID로 된 문서만 만들 수 있음
+      // 학생은 자기 UID 문서에 허용된 필드만 만들 수 있음
       allow create: if isOwner(studentUid)
-        &amp;&amp; request.resource.data.studentUid == request.auth.uid;
+        &amp;&amp; request.resource.data.studentUid == request.auth.uid
+        &amp;&amp; request.resource.data.keys().hasOnly([
+          "studentUid", "classId", "activityId",
+          "answer", "createdAt", "updatedAt"
+        ]);
 
-      // 실제 앱에서는 학생이 teacherFeedback을 바꾸지 못하도록
-      // 변경된 필드를 추가로 검사해야 함
-      allow update: if isOwner(studentUid) || isTeacher();
+      // 학생은 답안과 수정 시각만 바꿀 수 있음
+      // 교사도 문서 소유자인 studentUid는 바꿀 수 없음
+      allow update: if (
+          isOwner(studentUid)
+          &amp;&amp; resource.data.studentUid == request.auth.uid
+          &amp;&amp; request.resource.data.studentUid == resource.data.studentUid
+          &amp;&amp; request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(["answer", "updatedAt"])
+        ) || (
+          isTeacher()
+          &amp;&amp; request.resource.data.studentUid == resource.data.studentUid
+        );
 
       // 학생 삭제 허용 여부는 수업 정책에 맞게 결정
       allow delete: if isTeacher();
@@ -679,10 +696,10 @@ service cloud.firestore {
 }</code></pre>
 
       <div class="callout danger">
-        <strong>이 예시는 완성형 Rules가 아닙니다.</strong> 위의 단순한 <code>allow update</code>만 사용하면 학생이 자기 문서의 <code>teacherFeedback</code>까지 수정할 수 있습니다. 실제 배포본에서는 학생이 변경 가능한 필드를 제한해야 합니다.
+        <strong>학생이 읽는 제출물 문서에 교사용 비공개 메모를 넣지 마세요.</strong> 위 예시의 <code>teacherFeedback</code>이 학생에게 공개할 최종 피드백이라면 교사만 수정하도록 보호할 수 있습니다. AI 초안·평가 메모처럼 학생에게 감출 정보는 필드 보호만으로 숨길 수 없으므로 별도 교사 전용 문서로 분리해야 합니다.
       </div>
 
-      <h3>학생의 수정 가능 필드를 제한하는 원리</h3>
+      <h3>학생의 수정 가능 필드를 제한하는 핵심 원리</h3>
       <pre><code>allow update: if isOwner(studentUid)
   &amp;&amp; request.resource.data.diff(resource.data)
        .affectedKeys()

@@ -570,6 +570,8 @@
       <div class="summary-item"><span>추가 남용 방어</span><strong>App Check</strong></div>
     </div>
 
+    <p class="fine" style="margin:16px 0 18px;padding:12px 15px;border:1px solid #dce3eb;border-radius:12px;background:#fff"><strong>문서 정보</strong> · DOC 12 · 필수(Firebase) · 고급 · 약 40분 · 배포 전 기준 · 선행: DOC 08·04 · Emulator 거부 테스트 필수 · 기술 검토 2026-07-24 · <a href="web-app-design-master-index.html">마스터 인덱스</a></p>
+
     <nav aria-label="문서 목차">
       <a href="web-app-design-master-index.html">마스터 인덱스</a>
       <a href="#questions">최종 질문</a>
@@ -973,8 +975,34 @@ service cloud.firestore {
 
     function isApprovedMember(classId) {
       return signedIn()
+        && exists(/databases/$(database)/documents/classes/$(classId)
+                  /members/$(request.auth.uid))
         && get(/databases/$(database)/documents/classes/$(classId)
                /members/$(request.auth.uid)).data.status == "approved";
+    }
+
+    match /users/{userUid} {
+      // 전역 사용자 프로필은 본인만 직접 읽습니다.
+      // 교사가 필요한 학생 정보는 담당 학급의 members 문서에 둡니다.
+      allow get: if signedIn() && request.auth.uid == userUid;
+      allow list, create, update, delete: if false;
+    }
+
+    match /joinRequests/{requestUid} {
+      allow create: if signedIn()
+        && request.auth.uid == requestUid
+        && request.resource.data.status == "pending"
+        && request.resource.data.keys().hasOnly([
+          "requestedClassId", "status", "requestedAt"
+        ]);
+
+      // 담당 교사가 목록을 읽으려면 requestedClassId로 쿼리해야 합니다.
+      allow get, list: if signedIn()
+        && (request.auth.uid == requestUid
+          || teaches(resource.data.requestedClassId));
+
+      // 승인·거부와 멤버십 생성은 검증된 Callable/Admin 절차에서 처리합니다.
+      allow update, delete: if false;
     }
 
     match /classes/{classId} {
@@ -993,8 +1021,10 @@ service cloud.firestore {
         allow create, update, delete: if teaches(classId);
 
         match /submissions/{studentUid} {
-          allow get: if signedIn()
-            && (request.auth.uid == studentUid || teaches(classId));
+          allow get: if teaches(classId)
+            || (isApprovedMember(classId)
+              && request.auth.uid == studentUid
+              && resource.data.ownerUid == request.auth.uid);
           allow list: if teaches(classId);
 
           allow create: if isApprovedMember(classId)
@@ -1021,8 +1051,9 @@ service cloud.firestore {
           }
 
           match /feedback/{feedbackId} {
-            allow read: if signedIn()
-              && (request.auth.uid == studentUid || teaches(classId));
+            allow read: if teaches(classId)
+              || (isApprovedMember(classId)
+                && request.auth.uid == studentUid);
             allow write: if teaches(classId);
           }
         }
@@ -1039,7 +1070,7 @@ service cloud.firestore {
 
         <div class="callout warn">
           <strong>이 골격을 그대로 붙여 넣고 끝내지 않습니다.</strong>
-          문서가 존재하지 않을 때의 처리, 교사 여러 명, 제출 마감, 필드 자료형·길이, 서버 시각, 가입 승인 절차,
+          교사 여러 명, 제출 마감, 필드 자료형·길이, 서버 시각, 가입 승인 절차,
           필요한 쿼리와 Rules 호출 제한을 실제 앱에 맞게 보완해야 합니다.
         </div>
 

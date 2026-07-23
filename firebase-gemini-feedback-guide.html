@@ -485,11 +485,13 @@
     </header>
 
     <div class="summary-strip" aria-label="문서 요약">
-      <div class="summary-item summary-main"><span>한 문장 결론</span><strong>브라우저는 요청하고, Firebase 서버가 Gemini를 호출한다</strong></div>
+      <div class="summary-item summary-main"><span>문서 성격</span><strong>기관 승인·적용 약관 확인 후 사용하는 조건부 참고</strong></div>
       <div class="summary-item"><span>호출 도구</span><strong>Firebase Web SDK</strong></div>
       <div class="summary-item"><span>서버 작업</span><strong>Callable Function</strong></div>
       <div class="summary-item"><span>공개 조건</span><strong>교사 검토·확정</strong></div>
     </div>
+
+    <p class="fine" style="margin:16px 0 18px;padding:12px 15px;border:1px solid #dce3eb;border-radius:12px;background:#fff"><strong>문서 정보</strong> · DOC 09 · 조건부 선택 · 고급 · 약 30분 · 개념·구현 참고 · 기관 승인과 적용 약관 확인 필수 · 기술 검토 2026-07-24 · <a href="web-app-design-master-index.html">마스터 인덱스</a></p>
 
     <nav aria-label="문서 목차">
       <a href="#first">먼저 확인</a>
@@ -512,8 +514,28 @@
         <p class="lead">학생 대상 AI 기능은 API 키 보안만 확인해서 끝나지 않습니다. 학생의 연령, 학교의 개인정보 처리 기준, AI 공급자의 이용약관을 구현 전에 확인해야 합니다.</p>
 
         <div class="callout danger">
-          <strong>미성년자 대상이라면 구현을 잠시 멈추고 약관부터 확인하세요.</strong><br>
-          2026년 7월 현재 Gemini Developer API와 Google Cloud 생성형 AI 서비스 약관에는 만 18세 미만을 대상으로 하거나 이들이 접근할 가능성이 큰 앱에서의 사용 제한이 명시되어 있습니다. 교사만 생성 버튼을 누르더라도 결과가 학생용 앱으로 전달되는 구조가 예외라고 임의로 판단해서는 안 됩니다.
+          <strong>미성년자 대상이라면 이 장은 기본 구현 경로가 아니라 중단 조건입니다.</strong><br>
+          2026년 4월 28일 시행 Gemini Developer API 추가 약관은 API 사용자를 만 18세 이상으로 제한하고,
+          만 18세 미만을 대상으로 하거나 이들이 접근할 가능성이 있는 API Client에서의 서비스 사용을 금지합니다.
+          교사만 생성 버튼을 누르더라도 학생 대상 앱의 일부라면 자동 예외라고 판단해서는 안 됩니다.
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>제품·경로</th><th>이 문서와의 관계</th><th>구현 전 확인</th></tr></thead>
+            <tbody>
+              <tr><td>Gemini Developer API · Google AI Studio</td><td>이 장의 서버 호출 예시가 직접 가정하는 경로</td><td>18세 요건과 API Client 제한을 먼저 적용</td></tr>
+              <tr><td>Firebase AI Logic</td><td>클라이언트에서 모델을 호출할 수 있는 별도 제품</td><td>별도 약관·지원 모델·App Check·학생 대상 사용 가능 범위</td></tr>
+              <tr><td>Vertex AI</td><td>Google Cloud의 별도 기업·기관용 경로</td><td>기관 계약, Cloud 약관, 데이터 처리·지역·비용 정책</td></tr>
+              <tr><td>Google Workspace for Education의 Gemini</td><td>학교 계정에 제공되는 사용자용 기능이며 이 서버 API 예시와 다름</td><td>관리자 설정, 연령별 제공 범위, 학교의 승인 정책</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout warn">
+          <strong>제품 이름이 비슷해도 약관을 서로 대신 적용하지 않습니다.</strong>
+          Firebase AI Logic, Vertex AI, Workspace for Education의 조건을 Gemini Developer API에 그대로 대입하거나 그 반대로 판단하지 마세요.
+          학교·교육청의 기관 승인과 실제 사용할 제품의 최신 약관을 모두 확인한 경우에만 이후 구현 절차를 진행합니다.
         </div>
 
         <div class="grid grid-3 mt-22">
@@ -661,7 +683,7 @@
           </article>
           <article class="card">
             <h3>Callable Function</h3>
-            <p><code>onCall()</code>로 만든 서버 함수입니다. 로그인 토큰·App Check·요청·응답·오류를 Firebase 규격으로 다루기 편합니다.</p>
+            <p><code>onCall()</code>로 만든 서버 함수입니다. 전달된 로그인 토큰·App Check Token과 요청·응답·오류를 Firebase 규격으로 다루기 편합니다. 토큰이 없을 때까지 자동으로 차단하는 것은 아닙니다.</p>
           </article>
         </div>
 
@@ -966,6 +988,12 @@
           <strong>Rules 테스트와 서버 함수 테스트는 별개입니다.</strong><br>
           브라우저의 Firestore 요청은 Security Rules가 막지만, 서버 함수는 Admin SDK로 Rules를 우회할 수 있습니다. 따라서 “학생이 Firestore에서 초안을 못 읽는가?”와 “학생이 Callable Function을 못 실행하는가?”를 따로 시험해야 합니다.
         </div>
+
+        <div class="callout danger">
+          <strong>Callable 함수가 가장 먼저 확인할 조건:</strong>
+          <code>request.auth</code>가 없으면 즉시 인증 오류를 반환하고, UID의 교사 역할과 담당 범위를 검사한 뒤에만 제출물을 읽습니다.
+          App Check를 차단 조건으로 사용하려면 함수 옵션에 <code>enforceAppCheck: true</code>를 설정합니다.
+        </div>
       </section>
 
       <section id="prompt">
@@ -994,6 +1022,8 @@
 11. Gemini 결과를 자동 공개하지 않고 교사가 수정 후 별도의 공개 동작을 해야 합니다.
 12. 생성 횟수, 중복 클릭, 오류, 최소 로그, App Check와 비용 오남용 방지를 고려합니다.
 13. 서버용 Admin SDK는 Firestore Rules를 우회하므로 Callable Function 내부 권한 검사를 생략하지 않습니다.
+14. request.auth가 없으면 즉시 거부하고, App Check를 사용할 경우 enforceAppCheck: true를 설정합니다.
+15. Gemini Developer API의 18세 요건과 학생 대상 API Client 제한을 충족하지 못하면 구현을 중단합니다. 다른 Google AI 제품은 해당 제품의 별도 약관과 기관 계약을 다시 확인합니다.
 
 먼저 파일별 역할과 데이터 흐름을 초보자가 이해할 수 있게 설명하고, 한 단계씩 구현해 주세요. 각 단계가 끝날 때 교사 계정, 학생 계정, 비로그인 상태로 확인할 테스트도 함께 제시해 주세요. 기존에 정상 동작하는 학생 제출 기능과 교사 대시보드를 불필요하게 다시 작성하지 마세요.</code></pre>
         </div>
