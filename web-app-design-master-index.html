@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="학생·교사 웹 앱 설계 문서의 전체 흐름, 핵심 결정, 관련 문서와 향후 통합 계획을 관리하는 마스터 인덱스">
+  <title>학생·교사 웹 앱 설계 문서 마스터 인덱스</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --line: #dce3eb;
+      --paper: #ffffff;
+      --canvas: #f4f6f9;
+      --night: #192a43;
+      --teal: #087f78;
+      --teal-deep: #0b5f5a;
+      --teal-soft: #e9f9f6;
+      --indigo: #554bd8;
+      --indigo-deep: #4035a7;
+      --indigo-soft: #f0efff;
+      --blue: #2563eb;
+      --blue-soft: #edf4ff;
+      --amber: #bd6208;
+      --amber-soft: #fff4e3;
+      --red: #c43145;
+      --red-soft: #fff0f3;
+      --green: #258348;
+      --green-soft: #edf9f0;
+      --gray-soft: #f1f4f7;
+      --shadow: 0 24px 68px rgba(25,42,67,.14);
+      --radius: 21px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 0 0, rgba(8,127,120,.08), transparent 27rem),
+        radial-gradient(circle at 100% 42rem, rgba(85,75,216,.07), transparent 29rem),
+        var(--canvas);
+      font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      line-height: 1.72;
+      word-break: keep-all;
+    }
+
+    a { color: var(--teal); text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    button, input { font: inherit; }
+    code { padding: .13em .38em; color: #9d174d; border-radius: 5px; background: #eef2f5; font: .91em "SFMono-Regular", Consolas, "Liberation Mono", monospace; word-break: break-word; }
+    h1, h2, h3 { line-height: 1.34; letter-spacing: -.027em; }
+    h1 { margin: 0; max-width: 990px; font-size: clamp(2.1rem, 5vw, 3.95rem); }
+    h2 { margin: 0 0 12px; color: var(--night); font-size: clamp(1.55rem, 3.2vw, 2.27rem); }
+    h3 { margin: 23px 0 8px; color: var(--night); font-size: 1.16rem; }
+    p { margin: 9px 0; }
+    ul, ol { padding-left: 1.28rem; }
+    li { margin: 7px 0; }
+    li::marker { color: var(--teal); font-weight: 850; }
+
+    .page { width: min(1190px, calc(100% - 32px)); margin: 26px auto 80px; }
+    .hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      min-height: 485px;
+      padding: 65px clamp(28px, 6vw, 77px);
+      color: white;
+      border-radius: 29px;
+      background: linear-gradient(128deg, #172840 0%, #087f78 53%, #554bd8 122%);
+      box-shadow: var(--shadow);
+    }
+    .hero::before { content: ""; position: absolute; z-index: -1; right: -125px; top: -155px; width: 490px; height: 490px; border-radius: 50%; background: radial-gradient(circle, rgba(153,246,228,.43), rgba(153,246,228,0) 68%); }
+    .hero::after { content: ""; position: absolute; z-index: -1; right: 8%; bottom: -205px; width: 370px; height: 370px; border: 1px solid rgba(255,255,255,.23); border-radius: 50%; box-shadow: 0 0 0 49px rgba(255,255,255,.055), 0 0 0 100px rgba(255,255,255,.03); }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin: 0 0 15px; color: #99f6e4; font-size: .82rem; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 26px; height: 2px; background: #ddd6fe; }
+    .hero-copy { max-width: 950px; margin-top: 19px; color: #e3faf6; font-size: 1.1rem; }
+    .hero-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 29px; }
+    .hero-pill { padding: 9px 14px; border: 1px solid rgba(255,255,255,.23); border-radius: 999px; background: rgba(255,255,255,.1); backdrop-filter: blur(9px); font-size: .9rem; font-weight: 760; }
+
+    .top-summary { display: grid; grid-template-columns: 1.45fr repeat(3,1fr); position: relative; z-index: 2; overflow: hidden; margin: -41px 34px 0; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.97); box-shadow: 0 15px 42px rgba(25,42,67,.13); }
+    .summary-item { padding: 22px; border-right: 1px solid var(--line); }
+    .summary-item:last-child { border-right: 0; }
+    .summary-item span { display: block; color: var(--muted); font-size: .8rem; font-weight: 760; }
+    .summary-item strong { display: block; margin-top: 3px; color: var(--night); font-size: 1.13rem; }
+    .summary-main { background: linear-gradient(135deg,var(--teal-soft),white); }
+    .summary-main strong { color: var(--teal-deep); }
+
+    nav { display: flex; flex-wrap: wrap; gap: 7px; position: sticky; top: 10px; z-index: 20; margin: 27px 0 32px; padding: 13px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.91); box-shadow: 0 8px 28px rgba(25,42,67,.07); backdrop-filter: blur(15px); }
+    nav a { padding: 7px 11px; color: var(--night); border-radius: 999px; text-decoration: none; font-size: .87rem; font-weight: 760; }
+    nav a:hover { color: var(--teal); background: var(--teal-soft); }
+
+    section { margin-top: 28px; padding: clamp(25px,4.3vw,46px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: 0 9px 34px rgba(25,42,67,.055); scroll-margin-top: 94px; }
+    .section-no { display: block; margin-bottom: 7px; color: var(--teal); font-size: .79rem; font-weight: 900; letter-spacing: .12em; }
+    .lead { max-width: 980px; color: var(--muted); font-size: 1.04rem; }
+    .fine { color: var(--muted); font-size: .87rem; }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .grid-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    .grid-4 { grid-template-columns: repeat(4,minmax(0,1fr)); }
+    .card { padding: 21px; border: 1px solid var(--line); border-radius: 16px; background: white; }
+    .card h3 { margin-top: 0; }
+    .card p:last-child { margin-bottom: 0; }
+    .tint-teal { background: linear-gradient(145deg,var(--teal-soft),white 72%); border-color: #b9e3dc; }
+    .tint-indigo { background: linear-gradient(145deg,var(--indigo-soft),white 72%); border-color: #d1ccff; }
+    .tint-blue { background: linear-gradient(145deg,var(--blue-soft),white 72%); border-color: #c9dcff; }
+    .tint-amber { background: linear-gradient(145deg,var(--amber-soft),white 72%); border-color: #edcfaa; }
+    .tint-green { background: linear-gradient(145deg,var(--green-soft),white 72%); border-color: #c4e5cd; }
+    .tint-red { background: linear-gradient(145deg,var(--red-soft),white 72%); border-color: #efbdc6; }
+    .callout { margin: 20px 0; padding: 18px 20px; border-left: 5px solid var(--teal); border-radius: 0 13px 13px 0; background: var(--teal-soft); }
+    .callout strong { color: var(--teal-deep); }
+    .callout.indigo { border-color: var(--indigo); background: var(--indigo-soft); }
+    .callout.indigo strong { color: var(--indigo-deep); }
+    .callout.warn { border-color: var(--amber); background: var(--amber-soft); }
+    .callout.warn strong { color: #8c4800; }
+    .callout.danger { border-color: var(--red); background: var(--red-soft); }
+    .callout.danger strong { color: #9d1d35; }
+
+    .map { display: grid; grid-template-columns: 1fr 72px 1.25fr 72px 1fr; gap: 10px; align-items: center; margin: 23px 0; }
+    .map-box { min-height: 185px; display: flex; flex-direction: column; justify-content: center; padding: 21px; border: 1px solid var(--line); border-radius: 17px; background: white; text-align: center; }
+    .map-box strong { color: var(--night); font-size: 1.08rem; }
+    .map-box small { display: block; margin-top: 7px; color: var(--muted); }
+    .map-box.teal { background: var(--teal-soft); border-color: #b8e2db; }
+    .map-box.indigo { background: var(--indigo-soft); border-color: #d0cbff; }
+    .map-box.blue { background: var(--blue-soft); border-color: #c9dcff; }
+    .map-arrow { color: var(--teal); text-align: center; font-size: 1.7rem; font-weight: 950; }
+
+    .reading-path { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; margin-top: 22px; }
+    .path { overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: 0 12px 30px rgba(25,42,67,.065); }
+    .path-head { padding: 20px 22px; color: white; background: linear-gradient(135deg,var(--teal),#18a49b); }
+    .path.apps .path-head { background: linear-gradient(135deg,var(--indigo),#887ced); }
+    .path-head h3 { margin: 0; color: white; }
+    .path-head p { margin: 4px 0 0; color: rgba(255,255,255,.86); }
+    .path-body { padding: 22px; }
+    .path-step { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+    .path-step:last-child { border-bottom: 0; }
+    .step-no { display: grid; place-items: center; width: 31px; height: 31px; color: white; border-radius: 9px; background: var(--teal); font-size: .82rem; font-weight: 900; }
+    .apps .step-no { background: var(--indigo); }
+    .path-step strong { display: block; color: var(--night); }
+    .path-step small { color: var(--muted); }
+
+    .controls { display: grid; grid-template-columns: minmax(220px,1fr) auto; gap: 13px; align-items: center; margin: 23px 0 18px; }
+    .search { width: 100%; padding: 12px 14px; color: var(--ink); border: 1px solid var(--line); border-radius: 11px; background: white; outline: 0; }
+    .search:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(8,127,120,.14); }
+    .filters { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; }
+    .filter { padding: 8px 12px; color: var(--night); border: 1px solid var(--line); border-radius: 999px; background: white; cursor: pointer; font-size: .84rem; font-weight: 790; }
+    .filter.active { color: white; border-color: var(--teal); background: var(--teal); }
+
+    .doc-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
+    .doc { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: 0 12px 30px rgba(25,42,67,.065); }
+    .doc.hidden { display: none; }
+    .doc-top { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 21px 22px 0; }
+    .doc-no { color: var(--teal); font-size: .79rem; font-weight: 900; letter-spacing: .1em; }
+    .status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; color: #166534; border-radius: 999px; background: var(--green-soft); font-size: .75rem; font-weight: 850; white-space: nowrap; }
+    .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .doc-body { display: flex; flex: 1; flex-direction: column; padding: 12px 22px 22px; }
+    .doc h3 { margin: 0; font-size: 1.28rem; }
+    .doc-desc { color: var(--muted); }
+    .meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 14px 0; }
+    .meta div { padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafb; }
+    .meta span { display: block; color: var(--muted); font-size: .73rem; font-weight: 760; }
+    .meta strong { display: block; margin-top: 2px; color: var(--night); font-size: .87rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; margin-bottom: 18px; }
+    .tag { padding: 4px 8px; color: var(--teal-deep); border-radius: 999px; background: var(--teal-soft); font-size: .74rem; font-weight: 790; }
+    .tag.indigo { color: var(--indigo-deep); background: var(--indigo-soft); }
+    .tag.amber { color: #8c4800; background: var(--amber-soft); }
+    .doc-action { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding: 12px 14px; color: white; border-radius: 11px; background: var(--teal-deep); text-decoration: none; font-weight: 820; }
+    .doc-action:hover { text-decoration: none; background: var(--teal); }
+    .doc-action::after { content: "→"; }
+    .empty { display: none; padding: 28px; color: var(--muted); border: 1px dashed var(--line); border-radius: 15px; text-align: center; }
+    .empty.show { display: block; }
+    .doc-count { margin: 0 0 13px; color: var(--muted); font-size: .87rem; }
+
+    .table-wrap { overflow-x: auto; margin-top: 17px; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; min-width: 880px; border-collapse: collapse; background: white; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--night); background: #f2f6f8; font-size: .89rem; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 760; }
+    .pill { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: .75rem; font-weight: 850; white-space: nowrap; }
+    .pill.fixed { color: #166534; background: var(--green-soft); }
+    .pill.open { color: #8c4800; background: var(--amber-soft); }
+    .pill.plan { color: var(--indigo-deep); background: var(--indigo-soft); }
+
+    .principles { counter-reset: principle; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin-top: 20px; }
+    .principle { position: relative; min-height: 125px; padding: 19px 19px 19px 67px; border: 1px solid var(--line); border-radius: 15px; background: white; }
+    .principle::before { counter-increment: principle; content: counter(principle); position: absolute; left: 19px; top: 20px; display: grid; place-items: center; width: 34px; height: 34px; color: white; border-radius: 10px; background: linear-gradient(135deg,var(--teal),var(--indigo)); font-weight: 950; }
+    .principle strong { display: block; color: var(--night); }
+    .principle p { margin: 3px 0 0; color: var(--muted); }
+
+    .roadmap { display: grid; gap: 12px; margin-top: 20px; }
+    .road { display: grid; grid-template-columns: 115px minmax(0,1fr) auto; gap: 16px; align-items: center; padding: 17px 19px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+    .road strong { color: var(--night); }
+    .road p { margin: 0; color: var(--muted); }
+    .road .pill { justify-self: end; }
+
+    .glossary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin-top: 20px; }
+    .term { padding: 17px 18px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+    .term strong { color: var(--night); }
+    .term p { margin: 3px 0 0; color: var(--muted); }
+
+    .final-box { color: white; border: 0; background: linear-gradient(135deg,#1a2c48,#087f78 58%,#554bd8); }
+    .final-box h2 { color: white; }
+    .final-box .lead { color: #dffaf5; }
+    .final-box .card { color: var(--ink); }
+    .footer { margin-top: 24px; padding: 25px 10px; color: var(--muted); text-align: center; font-size: .86rem; }
+    .print { position: fixed; right: 18px; bottom: 18px; z-index: 30; padding: 11px 16px; color: white; border: 0; border-radius: 999px; background: var(--night); box-shadow: 0 9px 26px rgba(25,42,67,.25); cursor: pointer; font-weight: 780; }
+
+    @media (max-width: 1000px) {
+      .top-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .summary-item:nth-child(2), .summary-item:nth-child(4) { border-right: 0; }
+      .summary-item:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .grid-4, .grid-3 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .map { grid-template-columns: 1fr; }
+      .map-arrow { min-height: 30px; transform: rotate(90deg); }
+    }
+
+    @media (max-width: 760px) {
+      .page { width: min(100% - 20px,1190px); margin-top: 10px; }
+      .hero { min-height: auto; padding: 40px 23px 74px; border-radius: 19px; }
+      .top-summary { grid-template-columns: 1fr; margin: -37px 12px 0; }
+      .summary-item { border-right: 0; border-bottom: 1px solid var(--line); }
+      .summary-item:last-child { border-bottom: 0; }
+      nav { position: static; }
+      section { padding: 24px 19px; }
+      .grid-2, .grid-3, .grid-4, .reading-path, .doc-grid, .principles, .glossary { grid-template-columns: 1fr; }
+      .controls { grid-template-columns: 1fr; }
+      .filters { justify-content: flex-start; }
+      .road { grid-template-columns: 1fr; }
+      .road .pill { justify-self: start; }
+      .print { display: none; }
+    }
+
+    @media print {
+      @page { size: A4; margin: 14mm; }
+      body { background: white; font-size: 10.5pt; }
+      .page { width: 100%; margin: 0; }
+      .hero { min-height: auto; border-radius: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .top-summary { margin: 12px 0; box-shadow: none; }
+      nav, .print, .controls { display: none; }
+      section { box-shadow: none; break-inside: avoid; }
+      .doc, .card, .callout, th, .map-box { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .doc.hidden { display: flex; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Student · Teacher Web App · Documentation Map</p>
+      <h1>학생·교사 웹 앱 설계 문서<br>마스터 인덱스</h1>
+      <p class="hero-copy">GitHub Pages·Firebase와 Apps Script·Google Sheets를 검토하며 만든 문서를 한곳에서 찾고, 확정된 보안 원칙과 아직 결정하지 않은 설계 선택을 분리해 관리합니다. 1부는 학생·교사 화면 분리, 인증, 데이터 권한과 Firebase 운영 전 점검까지 완결했으며, 다음 단계에서는 React·Next.js와 서버리스 배포를 다룹니다.</p>
+      <div class="hero-pills">
+        <span class="hero-pill">완성 문서 12개</span>
+        <span class="hero-pill">두 가지 기술 경로</span>
+        <span class="hero-pill">공통 보안 원칙</span>
+        <span class="hero-pill">1부 보안 기준 완결</span>
+      </div>
+    </header>
+
+    <div class="top-summary" role="region" aria-label="문서 프로젝트 현황">
+      <div class="summary-item summary-main"><span>현재 단계</span><strong>1부 · Firebase 중심 보안 기준 완결</strong></div>
+      <div class="summary-item"><span>완성 문서</span><strong>12개 · 모두 연결됨</strong></div>
+      <div class="summary-item"><span>현재 결론</span><strong>Auth + Rules + 서버 검증</strong></div>
+      <div class="summary-item"><span>인덱스 버전</span><strong>1.0 · 2026-07-23</strong></div>
+    </div>
+
+    <nav aria-label="마스터 인덱스 목차">
+      <a href="#purpose">사용법</a>
+      <a href="#map">문서 지도</a>
+      <a href="#paths">읽는 순서</a>
+      <a href="#documents">문서 목록</a>
+      <a href="#matrix">비교표</a>
+      <a href="#principles">확정 원칙</a>
+      <a href="#decisions">결정 기록</a>
+      <a href="#glossary">공통 용어</a>
+      <a href="#roadmap">향후 문서</a>
+      <a href="#integration">통합 계획</a>
+    </nav>
+
+    <section id="purpose">
+      <span class="section-no">00 · HOW TO USE THIS INDEX</span>
+      <h2>이 파일이 앞으로 전체 프로젝트의 기준점입니다</h2>
+      <p class="lead">이 인덱스는 개별 문서의 내용을 대신하지 않습니다. 어떤 질문을 어느 문서에서 다루었는지 알려 주고, 이미 확정한 원칙을 반복해서 다시 논의하거나 서로 다른 문서가 충돌하는 일을 줄이는 역할을 합니다.</p>
+
+      <div class="grid grid-4">
+        <article class="card tint-teal"><h3>찾기</h3><p>기술·배포·인증 주제로 필요한 문서를 검색하고 바로 엽니다.</p></article>
+        <article class="card tint-indigo"><h3>연결하기</h3><p>화면 구조 문서와 그 구조에 적용되는 인증 문서를 함께 확인합니다.</p></article>
+        <article class="card tint-blue"><h3>결정하기</h3><p>확정된 원칙과 아직 결정하지 않은 선택을 구분합니다.</p></article>
+        <article class="card tint-amber"><h3>통합하기</h3><p>나중에 하나의 종합 가이드로 합칠 때 사용할 목차를 미리 유지합니다.</p></article>
+      </div>
+
+      <div class="callout">
+        <strong>업데이트 원칙:</strong> 새 HTML 문서를 만들면 문서 카드, 관련 문서, 결정 기록과 향후 통합 목차를 함께 갱신합니다. 기존 문서의 결론이 바뀌면 새 복사본을 늘리기보다 기존 문서와 이 인덱스를 같은 시점에 수정합니다.
+      </div>
+    </section>
+
+    <section id="map">
+      <span class="section-no">01 · DOCUMENT MAP</span>
+      <h2>전체 문서는 세 층으로 연결됩니다</h2>
+      <div class="map" role="img" aria-label="배포와 화면, 인증과 역할, 데이터 권한과 운영으로 이어지는 문서 구조">
+        <div class="map-box teal"><strong>1. 배포·화면 구조</strong><small>한 Pages인가, 두 Pages인가?<br>한 HTML인가, 두 HTML인가?<br>한 배포인가, 두 배포인가?</small></div>
+        <div class="map-arrow" aria-hidden="true">→</div>
+        <div class="map-box indigo"><strong>2. 사용자 인증·역할</strong><small>공동 비밀번호인가, 개별 계정인가?<br>Google 로그인인가?<br>학생·교사 역할은 어디서 확인하는가?</small></div>
+        <div class="map-arrow" aria-hidden="true">→</div>
+        <div class="map-box blue"><strong>3. 데이터 권한·운영</strong><small>Firestore Rules 또는 서버 함수<br>학생별 데이터 범위<br>배포·로그·보존·점검</small></div>
+      </div>
+
+      <div class="callout indigo">
+        <strong>가장 중요한 연결:</strong> 화면을 나누는 방식은 사용자 경험과 유지보수에 영향을 주지만, 학생·교사 권한을 자동으로 만들어 주지는 않습니다. 어느 기술 경로에서도 인증된 사용자와 역할을 데이터 접근 규칙 또는 서버 함수에서 다시 확인해야 합니다.
+      </div>
+    </section>
+
+    <section id="paths">
+      <span class="section-no">02 · RECOMMENDED READING PATH</span>
+      <h2>검토 중인 기술에 따라 읽는 순서가 다릅니다</h2>
+      <div class="reading-path">
+        <article class="path">
+          <header class="path-head"><h3>A. GitHub Pages + Firebase 경로</h3><p>정적 화면 호스팅 + Firebase 데이터·인증</p></header>
+          <div class="path-body">
+            <div class="path-step"><div class="step-no">1</div><div><strong>DOC 01 또는 DOC 02</strong><small>두 Pages와 한 Pages 중 화면·배포 구조를 먼저 비교합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">2</div><div><strong>DOC 03</strong><small>OAuth 없이 비밀번호 계정을 쓸 때 공통 비밀번호와 Firebase Auth를 구분합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">3</div><div><strong>DOC 04</strong><small>로그인, Authentication, OAuth와 Firestore 권한을 정확히 정리합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">4</div><div><strong>DOC 08 · 10 · 11</strong><small>실제 폴더·SDK 흐름, 브라우저와 서버의 경계, Firestore 문서 구조와 Rules를 연결합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">5</div><div><strong>DOC 12</strong><small>JWT, Custom Claims, App Check와 운영 전 거부 테스트까지 최종 기준으로 점검합니다.</small></div></div>
+          </div>
+        </article>
+
+        <article class="path apps">
+          <header class="path-head"><h3>B. Apps Script + Sheets 경로</h3><p>Apps Script 웹 앱 + Google Sheets 데이터</p></header>
+          <div class="path-body">
+            <div class="path-step"><div class="step-no">1</div><div><strong>DOC 05</strong><small>한 배포에서 여러 HTML을 반환하는 방식과 단일 index 전환을 비교합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">2</div><div><strong>DOC 06</strong><small>공동 비밀번호, Google 로그인, OAuth와 Apps Script 실행 주체를 점검합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">3</div><div><strong>DOC 07</strong><small>접근 코드가 꼭 필요할 때 HMAC 권장 구조와 바이브 코딩용 최소 구조를 구현 기준으로 확인합니다.</small></div></div>
+            <div class="path-step"><div class="step-no">4</div><div><strong>실제 운영 URL 시험</strong><small>학생·교사·시크릿 모드에서 세션과 서버 함수의 권한 거부를 확인합니다.</small></div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="documents">
+      <span class="section-no">03 · COMPLETED DOCUMENTS</span>
+      <h2>완성된 HTML 문서</h2>
+      <p class="lead">검색어나 주제 버튼으로 문서를 좁힐 수 있습니다. 각 링크는 이 인덱스와 같은 폴더에 있는 HTML 파일을 엽니다.</p>
+
+      <div class="controls">
+        <label><span class="fine">문서 검색</span><input class="search" id="doc-search" type="search" placeholder="예: OAuth, Firestore, 두 배포, 비밀번호" autocomplete="off"></label>
+        <div class="filters" role="group" aria-label="문서 주제 필터">
+          <button class="filter active" type="button" data-filter="all">전체</button>
+          <button class="filter" type="button" data-filter="firebase">Firebase</button>
+          <button class="filter" type="button" data-filter="apps-script">Apps Script</button>
+          <button class="filter" type="button" data-filter="screen">화면·배포</button>
+          <button class="filter" type="button" data-filter="auth">인증·보안</button>
+        </div>
+      </div>
+      <p class="doc-count" id="doc-count" aria-live="polite">12개 문서 표시 중</p>
+
+      <div class="doc-grid" id="doc-grid">
+        <article class="doc" data-topics="firebase screen github firestore deployment" data-search="학생 교사 github pages 두 개 별도 배포 firebase firestore 장단점 보안 rules">
+          <div class="doc-top"><span class="doc-no">DOC 01 · FIREBASE / SCREEN</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>두 GitHub Pages + 하나의 Firestore</h3>
+            <p class="doc-desc">학생용과 교사용 GitHub Pages를 따로 배포하고 같은 Firestore를 사용하는 구조의 특징·장단점·난도·보안을 분석합니다.</p>
+            <div class="meta"><div><span>화면·배포</span><strong>두 Pages · 두 화면</strong></div><div><span>데이터</span><strong>Firestore</strong></div><div><span>보안 핵심</span><strong>Auth + Security Rules</strong></div><div><span>관련 문서</span><strong>DOC 03 · 04</strong></div></div>
+            <p><strong>핵심 결론:</strong> 화면과 저장소의 코드 분리는 명확하지만 운영이 두 벌이 됩니다. Pages 분리는 Firestore 권한 분리가 아니므로 Rules가 핵심입니다.</p>
+            <div class="tags"><span class="tag">GitHub Pages</span><span class="tag">Firestore</span><span class="tag amber">별도 배포</span></div>
+            <a class="doc-action" href="github-pages-firebase-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="firebase screen github firestore deployment" data-search="하나의 github pages 학생 교사 화면 분리 student teacher routes 경로 firebase firestore">
+          <div class="doc-top"><span class="doc-no">DOC 02 · FIREBASE / SCREEN</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>하나의 GitHub Pages + 두 화면</h3>
+            <p class="doc-desc">한 GitHub Pages 안에서 학생 활동과 교사 대시보드를 경로 또는 화면 전환으로 분리하는 방법을 비교합니다.</p>
+            <div class="meta"><div><span>화면·배포</span><strong>한 Pages · 두 화면</strong></div><div><span>데이터</span><strong>Firestore</strong></div><div><span>보안 핵심</span><strong>역할 + Rules</strong></div><div><span>관련 문서</span><strong>DOC 03 · 04</strong></div></div>
+            <p><strong>핵심 결론:</strong> 배포와 공통 코드 관리가 단순합니다. 교사 경로나 숨김 화면은 보안이 아니므로 인증과 Rules는 동일하게 필요합니다.</p>
+            <div class="tags"><span class="tag">GitHub Pages</span><span class="tag">단일 배포</span><span class="tag amber">라우팅</span></div>
+            <a class="doc-action" href="single-github-pages-firebase-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="firebase auth security password deployment" data-search="oauth 없이 비밀번호 학생 교사 firebase authentication email password 공동 비밀번호 uid 배포 무관">
+          <div class="doc-top"><span class="doc-no">DOC 03 · FIREBASE / AUTH</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>OAuth 없이 학생·교사 비밀번호 사용</h3>
+            <p class="doc-desc">공동 비밀번호, 직접 구현 계정과 Firebase 이메일·비밀번호 인증을 구분하고 배포 방식과 무관한 보안 원칙을 설명합니다.</p>
+            <div class="meta"><div><span>적용 범위</span><strong>한 Pages·두 Pages 모두</strong></div><div><span>인증</span><strong>Firebase Email/Password</strong></div><div><span>보안 핵심</span><strong>개별 UID + 역할</strong></div><div><span>관련 문서</span><strong>DOC 01 · 02 · 04</strong></div></div>
+            <p><strong>핵심 결론:</strong> Google OAuth 없이도 Firebase의 이메일·비밀번호 인증을 사용할 수 있습니다. 공동 비밀번호가 아니라 개별 Firebase 계정이 현실적인 기본안입니다.</p>
+            <div class="tags"><span class="tag">Firebase Auth</span><span class="tag indigo">비밀번호</span><span class="tag amber">배포 무관</span></div>
+            <a class="doc-action" href="firebase-password-auth-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="firebase auth security oauth login firestore" data-search="로그인 authentication oauth oidc authorization firebase password google 로그인 firestore rules 보안 점검">
+          <div class="doc-top"><span class="doc-no">DOC 04 · CROSS-CUTTING / AUTH</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>로그인·Firebase Authentication·OAuth 비교</h3>
+            <p class="doc-desc">로그인, 인증, OAuth, 역할 권한의 차이를 설명하고 Firebase 비밀번호 로그인과 Google 로그인을 보안 관점에서 비교합니다.</p>
+            <div class="meta"><div><span>개념</span><strong>로그인 ≠ OAuth</strong></div><div><span>대상</span><strong>Firebase 웹 앱</strong></div><div><span>보안 핵심</span><strong>인증 후 Rules</strong></div><div><span>관련 문서</span><strong>DOC 03 · 06</strong></div></div>
+            <p><strong>핵심 결론:</strong> 로그인은 사용자 인증 과정이고 OAuth는 권한 위임 체계입니다. 어떤 로그인 방식이든 데이터 권한 검사는 별도로 필요합니다.</p>
+            <div class="tags"><span class="tag">Authentication</span><span class="tag indigo">OAuth</span><span class="tag amber">보안 점검</span></div>
+            <a class="doc-action" href="login-oauth-security-audit.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="apps-script screen deployment sheets" data-search="apps script google sheets student html teacher html index page 화면 두 파일 한 배포 doGet google script run">
+          <div class="doc-top"><span class="doc-no">DOC 05 · APPS SCRIPT / SCREEN</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>Apps Script 학생·교사 화면 구성 비교</h3>
+            <p class="doc-desc">한 웹 앱 배포에서 Student·Teacher HTML을 선택해 반환하는 구조와 하나의 Index 내부에서 화면을 전환하는 구조를 비교합니다.</p>
+            <div class="meta"><div><span>화면·배포</span><strong>한 배포 · 두 화면</strong></div><div><span>데이터</span><strong>Google Sheets</strong></div><div><span>보안 핵심</span><strong>서버 함수 권한 검사</strong></div><div><span>관련 문서</span><strong>DOC 06</strong></div></div>
+            <p><strong>핵심 결론:</strong> 한 요청은 하나의 HTML을 반환하지만 Student·Teacher 파일은 함께 존재할 수 있습니다. 파일 수는 보안 수준을 결정하지 않습니다.</p>
+            <div class="tags"><span class="tag indigo">Apps Script</span><span class="tag">Google Sheets</span><span class="tag amber">화면 구조</span></div>
+            <a class="doc-action" href="apps-script-screen-architecture-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="apps-script auth security oauth password sheets deployment" data-search="apps script 비밀번호 google 로그인 oauth authentication 역할 권한 실행 사용자 getActiveUser getEffectiveUser 보안 점검">
+          <div class="doc-top"><span class="doc-no">DOC 06 · APPS SCRIPT / AUTH</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>Apps Script 인증 방식 보안 점검</h3>
+            <p class="doc-desc">브라우저·서버 공동 비밀번호, Google 로그인, OAuth와 Apps Script 실행 주체를 분리하고 12문항으로 현재 설계를 진단합니다.</p>
+            <div class="meta"><div><span>적용 범위</span><strong>화면·배포 방식 무관</strong></div><div><span>인증</span><strong>Google 계정 또는 외부 Auth</strong></div><div><span>보안 핵심</span><strong>신원 + 역할 + 서버 검사</strong></div><div><span>관련 문서</span><strong>DOC 04 · 05</strong></div></div>
+            <p><strong>핵심 결론:</strong> 학교 계정이 있으면 Google 로그인과 역할 명단이 기본안입니다. OAuth는 Google 서비스 권한이며 교사 역할과 다릅니다.</p>
+            <div class="tags"><span class="tag indigo">Apps Script</span><span class="tag">Authentication</span><span class="tag amber">OAuth</span></div>
+            <a class="doc-action" href="apps-script-auth-security-audit.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="apps-script auth security password sheets hmac vibe-coding" data-search="apps script 접근 코드 학생 교사 hmac sha 256 salt pepper 세션 requireTeacher requireStudent 바이브 코딩 AI 프롬프트 테스트 최소 보안">
+          <div class="doc-top"><span class="doc-no">DOC 07 · APPS SCRIPT / IMPLEMENTATION</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>Apps Script 접근 코드 보안 구현 가이드</h3>
+            <p class="doc-desc">HMAC-SHA-256을 사용하는 강한 맞춤형 구조와 비민감 활동용 최소 구조를 나누고, AI 요청문·필수 코드 형태·18개 검증 테스트를 제공합니다.</p>
+            <div class="meta"><div><span>적용 범위</span><strong>Apps Script + Sheets</strong></div><div><span>인증</span><strong>개별 접근 코드</strong></div><div><span>보안 핵심</span><strong>HMAC + 세션 + 역할 검사</strong></div><div><span>관련 문서</span><strong>DOC 05 · 06</strong></div></div>
+            <p><strong>핵심 결론:</strong> 강한 구조는 평문 코드를 저장하지 않습니다. 최소 구조에서도 모든 데이터 함수의 서버 세션·역할 검사는 생략할 수 없습니다.</p>
+            <div class="tags"><span class="tag indigo">Apps Script</span><span class="tag">HMAC-SHA-256</span><span class="tag amber">AI 복사 키트</span></div>
+            <a class="doc-action" href="apps-script-access-code-security-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="firebase screen github firestore auth implementation vibe-coding" data-search="github pages 하나 학생 teacher student 폴더 firebase sdk config authentication firestore rules 바이브 코딩 AI 프롬프트">
+          <div class="doc-top"><span class="doc-no">DOC 08 · FIREBASE / IMPLEMENTATION</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>한 Pages 학생·교사 앱 실전 구현 가이드</h3>
+            <p class="doc-desc">한 GitHub Pages의 학생·교사 폴더, 공용 Firebase 초기화 코드, Authentication과 Firestore의 역할을 비전공 교사용 구현 흐름으로 연결합니다.</p>
+            <div class="meta"><div><span>화면·배포</span><strong>한 Pages · 두 폴더</strong></div><div><span>데이터</span><strong>Firestore</strong></div><div><span>인증</span><strong>Google 로그인</strong></div><div><span>관련 문서</span><strong>DOC 10 · 11 · 12</strong></div></div>
+            <p><strong>핵심 결론:</strong> Firebase 웹 설정값은 브라우저용 식별 정보이며, 실제 데이터 보호는 로그인된 UID와 Security Rules가 담당합니다.</p>
+            <div class="tags"><span class="tag">GitHub Pages</span><span class="tag">Firebase SDK</span><span class="tag amber">AI 복사 프롬프트</span></div>
+            <a class="doc-action" href="github-pages-firebase-vibe-coding-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="firebase server security gemini callable functions api feedback" data-search="gemini api firebase functions callable onCall httpsCallable secret manager 교사 피드백 초안 학생 읽기 전용 서버">
+          <div class="doc-top"><span class="doc-no">DOC 09 · FIREBASE / AI SERVER</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>Gemini 피드백과 Firebase 서버 기능</h3>
+            <p class="doc-desc">학생 응답을 Gemini로 보내 교사용 피드백 초안을 만들 때 Firebase Functions, Callable Function, Secret Manager와 검토 후 공개 흐름을 설명합니다.</p>
+            <div class="meta"><div><span>실행 위치</span><strong>Firebase 서버</strong></div><div><span>호출</span><strong>httpsCallable → onCall</strong></div><div><span>비밀정보</span><strong>Secret Manager</strong></div><div><span>관련 문서</span><strong>DOC 10 · 12</strong></div></div>
+            <p><strong>핵심 결론:</strong> API 키와 AI 호출은 공개 JavaScript가 아니라 서버에서 실행하고, 교사 권한·입력·결과 공개 상태를 서버가 검증해야 합니다.</p>
+            <div class="tags"><span class="tag">Firebase Functions</span><span class="tag indigo">Callable</span><span class="tag amber">Gemini API</span></div>
+            <a class="doc-action" href="firebase-gemini-feedback-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="firebase server browser security cors sop jwt callable" data-search="브라우저 서버 sop same origin policy cors options preflight jwt callable github pages firebase functions 클라이언트 sdk">
+          <div class="doc-top"><span class="doc-no">DOC 10 · WEB SECURITY / BOUNDARY</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>브라우저·서버와 SOP·CORS</h3>
+            <p class="doc-desc">GitHub Pages 브라우저 코드와 Firebase 서버 코드를 구분하고 SOP, CORS, OPTIONS 사전 요청, Callable 통신과 인증·권한의 차이를 설명합니다.</p>
+            <div class="meta"><div><span>클라이언트</span><strong>공개 JavaScript</strong></div><div><span>서버</span><strong>Functions·Rules</strong></div><div><span>통신</span><strong>SOP·CORS·HTTPS</strong></div><div><span>관련 문서</span><strong>DOC 09 · 12</strong></div></div>
+            <p><strong>핵심 결론:</strong> CORS는 다른 출처의 응답을 브라우저가 읽을 수 있는지 통제할 뿐, 사용자 인증이나 데이터 권한을 대신하지 않습니다.</p>
+            <div class="tags"><span class="tag">SOP</span><span class="tag indigo">CORS</span><span class="tag amber">브라우저·서버 경계</span></div>
+            <a class="doc-action" href="browser-server-sop-cors-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="firebase firestore security rules data-model supabase rls" data-search="cloud firestore 컬렉션 문서 필드 uid 문서 아이디 security rules 공개 supabase sql rls membership 클래스 학생">
+          <div class="doc-top"><span class="doc-no">DOC 11 · FIRESTORE / DATA RULES</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>Firestore 문서 구조와 Rules 이해</h3>
+            <p class="doc-desc">컬렉션·문서·필드의 관계, UID를 문서 ID로 사용하는 설계, 문서 단위 읽기, 공개되는 Rules의 의미를 Supabase RLS와 함께 설명합니다.</p>
+            <div class="meta"><div><span>중심 기술</span><strong>Cloud Firestore</strong></div><div><span>데이터 구조</span><strong>컬렉션·문서</strong></div><div><span>권한</span><strong>Security Rules</strong></div><div><span>참고 비교</span><strong>Supabase RLS</strong></div></div>
+            <p><strong>핵심 결론:</strong> 특정 문서 ID는 권한 검사를 단순하게 하지만 비밀키가 아닙니다. 실제 허용 범위는 항상 Rules가 결정합니다.</p>
+            <div class="tags"><span class="tag">Firestore</span><span class="tag indigo">Security Rules</span><span class="tag amber">Supabase RLS</span></div>
+            <a class="doc-action" href="firestore-rules-supabase-guide.html">문서 열기</a>
+          </div>
+        </article>
+
+        <article class="doc" data-topics="firebase auth security firestore rules jwt custom-claims app-check production tests final" data-search="학생 교사 최종 보안 기준 jwt id token 생성 전달 검증 만료 refresh token custom claims app check firestore rules test mode production 거부 테스트 AI 프롬프트">
+          <div class="doc-top"><span class="doc-no">DOC 12 · PART 1 / FINAL BASELINE</span><span class="status">완성</span></div>
+          <div class="doc-body">
+            <h3>학생·교사 Firebase 앱 최종 보안 기준</h3>
+            <p class="doc-desc">학생·교사의 허용 범위, 안전한 문서 구조, JWT 생명주기, Custom Claims, App Check, Rules와 운영 배포 전 테스트를 하나의 판정 기준으로 통합합니다.</p>
+            <div class="meta"><div><span>적용 범위</span><strong>학생·교사 Firebase 앱</strong></div><div><span>인증</span><strong>Auth + ID Token</strong></div><div><span>권한</span><strong>Claims + Rules</strong></div><div><span>추가 방어</span><strong>App Check</strong></div></div>
+            <p><strong>핵심 결론:</strong> 화면과 브라우저를 신뢰하지 않고 Firebase가 매 요청의 신원·역할·소유권·필드·앱 검증을 통과시킨 경우에만 데이터를 허용합니다.</p>
+            <div class="tags"><span class="tag">최종 체크리스트</span><span class="tag indigo">JWT·Claims</span><span class="tag amber">App Check</span></div>
+            <a class="doc-action" href="firebase-student-teacher-security-baseline.html">문서 열기</a>
+          </div>
+        </article>
+      </div>
+      <div class="empty" id="doc-empty">검색 조건에 맞는 문서가 없습니다. 검색어를 줄이거나 ‘전체’를 선택해 주세요.</div>
+    </section>
+
+    <section id="matrix">
+      <span class="section-no">04 · COVERAGE MATRIX</span>
+      <h2>문서가 다루는 질문을 한눈에 비교</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>문서</th><th>호스팅·웹 앱</th><th>화면 구성</th><th>데이터 저장</th><th>인증 중심</th><th>최종 질문</th></tr></thead>
+          <tbody>
+            <tr><td>DOC 01</td><td>GitHub Pages 두 곳</td><td>학생·교사 별도 사이트</td><td>Firestore</td><td>Firebase Auth 전제</td><td>두 배포의 분리 이점이 운영 비용보다 큰가?</td></tr>
+            <tr><td>DOC 02</td><td>GitHub Pages 한 곳</td><td>경로·라우팅·화면 전환</td><td>Firestore</td><td>역할 + Rules</td><td>한 배포가 기능·운영 요구를 충족하는가?</td></tr>
+            <tr><td>DOC 03</td><td>배포 방식 무관</td><td>한 화면·두 화면 모두</td><td>Firestore</td><td>Firebase Email/Password</td><td>공동 비밀번호 대신 개별 UID를 사용할 수 있는가?</td></tr>
+            <tr><td>DOC 04</td><td>Firebase 웹 앱</td><td>구조 무관</td><td>Firestore</td><td>로그인·Auth·OAuth 비교</td><td>누가 인증하고 누가 데이터 권한을 검사하는가?</td></tr>
+            <tr><td>DOC 05</td><td>Apps Script 웹 앱</td><td>여러 HTML vs 단일 Index</td><td>Google Sheets</td><td>서버 권한의 전제</td><td>두 화면의 크기와 운영 정책에 맞는 구조는 무엇인가?</td></tr>
+            <tr><td>DOC 06</td><td>Apps Script 웹 앱</td><td>구조 무관</td><td>Google Sheets</td><td>비밀번호·Google 로그인·OAuth</td><td>실제 사용자를 식별하고 서버에서 역할을 확인할 수 있는가?</td></tr>
+            <tr><td>DOC 07</td><td>Apps Script 웹 앱</td><td>학생·교사 화면</td><td>Google Sheets 2개</td><td>접근 코드·HMAC·세션</td><td>직접 만든 인증을 구현·시험하고 안전한 범위로 제한할 수 있는가?</td></tr>
+            <tr><td>DOC 08</td><td>GitHub Pages 한 곳</td><td>학생·교사 별도 폴더</td><td>Firestore</td><td>Google 로그인 + Rules</td><td>AI에게 어떤 방향과 검증 기준으로 구현을 요청해야 하는가?</td></tr>
+            <tr><td>DOC 09</td><td>GitHub Pages + Functions</td><td>교사 AI 피드백 흐름</td><td>Firestore + Secret Manager</td><td>Callable 교사 권한 검사</td><td>AI API 키와 초안을 어떻게 서버에 격리하는가?</td></tr>
+            <tr><td>DOC 10</td><td>브라우저 + Firebase 서버</td><td>공개 클라이언트·신뢰 서버</td><td>구조 무관</td><td>SOP·CORS·토큰</td><td>통신 허용과 사용자 권한을 정확히 구분했는가?</td></tr>
+            <tr><td>DOC 11</td><td>Firebase 중심</td><td>구조 무관</td><td>Firestore · Supabase 참고</td><td>Rules · RLS</td><td>데이터 구조가 사용자별 권한 검사를 가능하게 하는가?</td></tr>
+            <tr><td>DOC 12</td><td>Firebase 앱 종합</td><td>학생·교사 화면</td><td>Firestore</td><td>JWT·Claims·App Check</td><td>운영 배포 전에 허용과 거부를 모두 증명했는가?</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="principles">
+      <span class="section-no">05 · CONFIRMED PRINCIPLES</span>
+      <h2>지금까지 모든 문서에서 일관되게 확정한 원칙</h2>
+      <div class="principles">
+        <div class="principle"><strong>화면 분리는 보안 경계가 아니다</strong><p>별도 URL, HTML 파일, 숨김 화면과 <code>?page=teacher</code>는 사용자 경험과 코드 구조일 뿐 교사 인증을 만들지 않습니다.</p></div>
+        <div class="principle"><strong>브라우저는 신뢰하지 않는다</strong><p>클라이언트가 보낸 역할, 이메일, 학번, UID, 문서 ID와 행 번호는 서버 또는 Security Rules가 검증해야 합니다.</p></div>
+        <div class="principle"><strong>공동 비밀번호는 개인 인증이 아니다</strong><p>유출자를 찾거나 한 사용자만 차단할 수 없으므로, 민감한 학생 데이터와 교사 기능에는 개별 계정을 사용합니다.</p></div>
+        <div class="principle"><strong>로그인·인증·OAuth·역할 권한은 다르다</strong><p>계정을 확인한 뒤에도 우리 앱의 학생·교사 역할과 데이터 접근 범위를 별도로 결정해야 합니다.</p></div>
+        <div class="principle"><strong>데이터 계층이 최종 권한을 검사한다</strong><p>Firestore에서는 Security Rules, Apps Script에서는 각 서버 함수가 최종적으로 읽기·쓰기 권한을 확인합니다.</p></div>
+        <div class="principle"><strong>식별 실패는 접근 거부가 기본이다</strong><p>사용자 이메일이나 UID를 확인하지 못했을 때 추측하거나 기본 역할을 부여하지 않고 안전하게 실패시킵니다.</p></div>
+        <div class="principle"><strong>교사 권한은 개별적으로 회수할 수 있어야 한다</strong><p>교사 허용 목록, 커스텀 클레임 또는 서버 역할 명단으로 특정 계정의 권한을 변경하고 기록할 수 있어야 합니다.</p></div>
+        <div class="principle"><strong>최소 권한과 최소 데이터를 유지한다</strong><p>필요한 OAuth 범위, Firestore 컬렉션, Sheet 열, 로그와 보존 기간만 사용합니다.</p></div>
+        <div class="principle"><strong>최소 버전도 서버 권한 검사는 생략하지 않는다</strong><p>HMAC 저장 보호를 단순화하는 저위험 대안에서도 세션, 역할, 학생 데이터 소유권은 모든 서버 요청에서 확인합니다.</p></div>
+        <div class="principle"><strong>JWT Payload는 암호화된 비밀 저장소가 아니다</strong><p>Firebase ID Token의 내용은 사용자가 읽을 수 있습니다. 서버는 서명·발급자·대상·만료를 검증하고 Payload에는 비밀번호·API 키·학생 답안을 넣지 않습니다.</p></div>
+        <div class="principle"><strong>Custom Claims는 작고 안정적인 역할 정보만 담는다</strong><p>권한 있는 서버만 설정하며, 프로필·학급 목록·답안 같은 일반 데이터는 Firestore 문서에 저장합니다.</p></div>
+        <div class="principle"><strong>App Check는 인증과 Rules를 보완한다</strong><p>정상 앱에서 온 요청인지 추가로 확인하지만 사용자가 누구인지 또는 어떤 데이터를 읽을 수 있는지는 Auth와 Rules가 판단합니다.</p></div>
+      </div>
+    </section>
+
+    <section id="decisions">
+      <span class="section-no">06 · DECISION REGISTER</span>
+      <h2>확정한 사항과 아직 결정하지 않은 사항</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>상태</th><th>설계 질문</th><th>현재 기록</th><th>결정에 필요한 정보</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill fixed">확정</span></td><td>교사 화면 숨김이 보안인가?</td><td>아니다. 데이터 함수·Rules의 권한 검사가 필요하다.</td><td>추가 정보 불필요</td></tr>
+            <tr><td><span class="pill fixed">확정</span></td><td>OAuth 없이 비밀번호 로그인이 가능한가?</td><td>가능하다. Firebase Email/Password는 OAuth가 아니다.</td><td>계정 생성·재설정 운영 방식</td></tr>
+            <tr><td><span class="pill fixed">확정</span></td><td>Apps Script HTML 두 개는 교체되는가?</td><td>파일은 함께 존재한다. 한 요청이 선택된 HtmlOutput 하나를 받는다.</td><td>화면 크기와 공통 코드 비율</td></tr>
+            <tr><td><span class="pill fixed">확정</span></td><td>Apps Script 접근 코드의 최소 보안선은?</td><td>비공개 저장소, 서버 세션, 요청별 역할·소유권 검사와 최소 데이터가 필요하다.</td><td>민감 정보가 생기면 인증 전문 서비스로 전환</td></tr>
+            <tr><td><span class="pill fixed">확정</span></td><td>Firebase 앱의 최종 보안 경계는?</td><td>화면이 아니라 Authentication, Firestore Rules와 권한을 검사하는 서버 함수다.</td><td>실제 Rules와 거부 테스트 결과</td></tr>
+            <tr><td><span class="pill fixed">확정</span></td><td>App Check만 적용하면 권한 검사가 되는가?</td><td>아니다. App Check는 앱 요청 검증을 추가하지만 Auth·Rules를 대체하지 않는다.</td><td>지원 서비스와 강제 적용 전 지표</td></tr>
+            <tr><td><span class="pill open">미결정</span></td><td>2부의 최종 프런트엔드·호스팅</td><td>React·Next.js와 Netlify·Vercel을 서버리스 함수 기준으로 비교한다.</td><td>SSR 필요성, 유지보수, 비용, 배포 경험</td></tr>
+            <tr><td><span class="pill open">미결정</span></td><td>한 배포인가, 두 배포인가?</td><td>보안이 아니라 운영·접근 정책 차이를 기준으로 결정한다.</td><td>학생·교사 접근 범위와 배포 주기</td></tr>
+            <tr><td><span class="pill open">미결정</span></td><td>학생 인증 방식</td><td>학교 Google 계정 또는 Firebase 개별 계정이 우선 후보다.</td><td>모든 학생의 계정 보유 여부와 비밀번호 재설정 책임</td></tr>
+            <tr><td><span class="pill fixed">확정</span></td><td>학생·교사 앱의 주 데이터 저장소</td><td>1부의 운영 보안 기준은 Firestore를 중심으로 확정한다. Sheets 방식은 저위험·제한적 대안으로만 본다.</td><td>2부에서 백업·보존·비용을 추가 검토</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <strong>아직 확정하지 않는 것:</strong> React와 Next.js 중 무엇을 쓸지, Netlify와 Vercel 중 어디에 배포할지는 2부에서 결정합니다. 다만 어떤 조합이든 브라우저에 공개되면 안 되는 API 키와 권한 작업은 서버리스 함수 등 서버 실행 영역에 두어야 한다는 원칙은 확정했습니다.
+      </div>
+    </section>
+
+    <section id="glossary">
+      <span class="section-no">07 · SHARED GLOSSARY</span>
+      <h2>앞으로 모든 문서에서 동일하게 사용할 용어</h2>
+      <div class="glossary">
+        <div class="term"><strong>로그인 Login</strong><p>사용자가 계정 정보를 입력하거나 제공자를 선택해 인증 절차를 시작·완료하는 사용자 경험입니다.</p></div>
+        <div class="term"><strong>인증 Authentication</strong><p>사용자가 누구인지 신뢰할 수 있는 방식으로 확인하는 과정입니다.</p></div>
+        <div class="term"><strong>역할 권한 App Authorization</strong><p>인증된 사용자가 학생·교사·관리자 중 누구이며 어떤 기능과 데이터에 접근할 수 있는지 결정합니다.</p></div>
+        <div class="term"><strong>OAuth</strong><p>사용자 또는 앱이 Google 같은 서비스의 자원에 어느 범위까지 접근할 수 있는지 위임하는 표준입니다.</p></div>
+        <div class="term"><strong>배포 Deployment</strong><p>작성한 코드를 실제 사용자가 접근할 수 있는 URL과 실행 환경으로 공개하는 단위입니다.</p></div>
+        <div class="term"><strong>화면 View / Page</strong><p>학생 활동 또는 교사 대시보드처럼 사용자가 보는 UI 단위이며, 배포나 보안 경계와 동일하지 않습니다.</p></div>
+        <div class="term"><strong>Firestore Security Rules</strong><p>인증 사용자와 데이터 조건에 따라 Firestore 읽기·쓰기를 허용하거나 거부하는 서버 측 규칙입니다.</p></div>
+        <div class="term"><strong>Apps Script 서버 함수</strong><p><code>google.script.run</code> 등으로 호출되는 서버 코드입니다. 호출될 때마다 사용자·역할·입력을 검사해야 합니다.</p></div>
+        <div class="term"><strong>HMAC-SHA-256</strong><p>입력과 서버 비밀키로 검증값을 만드는 키 기반 함수입니다. 교사가 발급한 무작위 접근 코드의 저장 보호에 활용할 수 있습니다.</p></div>
+        <div class="term"><strong>salt와 pepper</strong><p>salt는 사용자별로 다른 공개 난수이고, pepper는 인증 데이터와 분리해 보관하는 앱 전체 비밀키입니다.</p></div>
+        <div class="term"><strong>서버 세션</strong><p>로그인 뒤 서버가 사용자 ID·역할·만료를 기억하는 임시 상태입니다. 이후 모든 데이터 요청의 권한 판단에 사용합니다.</p></div>
+        <div class="term"><strong>JWT · Firebase ID Token</strong><p>Header, Payload, Signature로 구성된 서명된 토큰입니다. Firebase 로그인 뒤 UID를 전달하며 서버는 서명·발급자·대상·만료를 검증합니다. Payload는 암호화가 아닙니다.</p></div>
+        <div class="term"><strong>Custom Claims</strong><p>권한 있는 서버가 Firebase 사용자 토큰에 넣는 작은 역할 정보입니다. 교사·관리자처럼 접근 제어에 필요한 값만 사용합니다.</p></div>
+        <div class="term"><strong>App Check</strong><p>요청이 등록된 정상 앱 환경에서 왔는지 추가로 확인하는 남용 방어 계층입니다. 사용자 인증과 데이터 권한 검사를 대신하지 않습니다.</p></div>
+        <div class="term"><strong>Callable Function</strong><p>Firebase Functions에서 <code>onCall()</code>로 만든 서버 함수입니다. 클라이언트의 <code>httpsCallable()</code> 호출과 연결되어 인증 토큰·App Check·오류 형식을 다루기 쉽게 해 줍니다.</p></div>
+      </div>
+    </section>
+
+    <section id="roadmap">
+      <span class="section-no">08 · DOCUMENT ROADMAP</span>
+      <h2>1부를 닫고 2부로 넘어가는 순서</h2>
+      <div class="roadmap">
+        <div class="road"><strong>PART 1 · DONE</strong><p><strong>DOC 12 · Firebase 앱 최종 보안 기준</strong><br>역할표, 문서 구조, JWT, Custom Claims, App Check, Rules와 운영 전 거부 테스트를 통합했습니다.</p><span class="pill fixed">완결</span></div>
+        <div class="road"><strong>PART 2 · 01</strong><p><strong>React·Vite와 Next.js 구조 선택</strong><br>정적 SPA, 서버 렌더링, API 경로와 비전공 교사의 유지보수 난도를 비교합니다.</p><span class="pill plan">다음 권장</span></div>
+        <div class="road"><strong>PART 2 · 02</strong><p><strong>Netlify·Vercel 배포와 서버리스 함수</strong><br>프런트엔드 배포, 함수 실행 위치, 요청 흐름과 Firebase 연결을 단계적으로 정리합니다.</p><span class="pill open">예정</span></div>
+        <div class="road"><strong>PART 2 · 03</strong><p><strong>환경 변수와 API 비밀키의 실제 보안</strong><br>환경 변수 이름만 숨기는 오해를 바로잡고, 키를 읽는 코드가 서버에서 실행되는지 확인하는 기준을 만듭니다.</p><span class="pill open">예정</span></div>
+        <div class="road"><strong>PART 2 · 04</strong><p><strong>운영·관찰·백업·사고 대응</strong><br>로그, 비용 알림, 데이터 보존·삭제, 백업, 권한 회수와 장애 대응을 실제 운영 체크리스트로 연결합니다.</p><span class="pill open">예정</span></div>
+      </div>
+
+      <div class="callout">
+        <strong>다음 출발점:</strong> React·Vite와 Next.js의 차이를 먼저 정리해야 정적 호스팅과 서버 실행 영역을 구분할 수 있고, 그 다음 Netlify·Vercel과 서버리스 함수의 역할을 정확히 판단할 수 있습니다.
+      </div>
+    </section>
+
+    <section id="integration" class="final-box">
+      <span class="section-no" style="color:#99f6e4">09 · FINAL INTEGRATION PLAN</span>
+      <h2>문서 프로젝트의 두 부분</h2>
+      <p class="lead">1부는 학생·교사 Firebase 앱의 데이터·인증·권한 보안을 닫습니다. 2부는 React·Next.js와 Netlify·Vercel을 이용해 같은 원칙을 실제 서비스 배포 구조로 확장합니다.</p>
+      <div class="grid grid-3" style="margin-top:20px">
+        <article class="card"><h3 style="color:var(--teal)">Part 1 · 보안 기반 · 완결</h3><ol><li>학생·교사 화면과 신뢰 경계</li><li>Authentication·JWT·역할</li><li>Firestore 문서 구조·Rules</li><li>Custom Claims·App Check·테스트</li></ol></article>
+        <article class="card"><h3 style="color:var(--indigo)">Part 2 · 앱 구조와 배포</h3><ol><li>React·Vite와 Next.js</li><li>Netlify·Vercel</li><li>서버리스 함수·API</li><li>환경 변수·비밀키</li></ol></article>
+        <article class="card"><h3 style="color:var(--blue)">운영 공통 기준</h3><ol><li>개인정보 최소화·보존·삭제</li><li>로그·비용·오류 관찰</li><li>백업·권한 회수</li><li>배포 전 회귀 테스트</li></ol></article>
+      </div>
+      <p style="margin-top:20px"><strong>연결 기준:</strong> 2부의 어떤 프레임워크와 호스팅을 선택하더라도 DOC 12의 신원·역할·소유권·필드·앱 검증과 거부 테스트를 그대로 유지합니다.</p>
+    </section>
+
+    <footer class="footer">학생·교사 웹 앱 설계 문서 마스터 인덱스 · 버전 1.0 · 2026-07-23</footer>
+  </main>
+
+  <button class="print" type="button" onclick="window.print()" aria-label="문서 인쇄 또는 PDF 저장">인쇄 · PDF 저장</button>
+
+  <script>
+    (() => {
+      const search = document.getElementById('doc-search');
+      const filters = [...document.querySelectorAll('.filter')];
+      const docs = [...document.querySelectorAll('.doc')];
+      const count = document.getElementById('doc-count');
+      const empty = document.getElementById('doc-empty');
+      let activeFilter = 'all';
+
+      const normalize = (value) => value.toLowerCase().replace(/\s+/g, ' ').trim();
+
+      const applyFilters = () => {
+        const query = normalize(search.value);
+        let visible = 0;
+
+        docs.forEach(doc => {
+          const topics = normalize(doc.dataset.topics || '');
+          const haystack = normalize(`${doc.textContent} ${doc.dataset.search || ''}`);
+          const matchesTopic = activeFilter === 'all' || topics.includes(activeFilter);
+          const matchesSearch = !query || query.split(' ').every(term => haystack.includes(term));
+          const show = matchesTopic && matchesSearch;
+          doc.classList.toggle('hidden', !show);
+          if (show) visible += 1;
+        });
+
+        count.textContent = `${visible}개 문서 표시 중`;
+        empty.classList.toggle('show', visible === 0);
+      };
+
+      filters.forEach(button => {
+        button.addEventListener('click', () => {
+          activeFilter = button.dataset.filter;
+          filters.forEach(item => item.classList.toggle('active', item === button));
+          applyFilters();
+        });
+      });
+
+      search.addEventListener('input', applyFilters);
+    })();
+  </script>
+</body>
+</html>

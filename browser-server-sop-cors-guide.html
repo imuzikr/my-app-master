@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="GitHub Pages와 Firebase 웹 앱에서 브라우저 함수와 서버 함수를 구분하고 SOP, CORS, OPTIONS 사전 요청, Callable Function의 관계를 이해하는 초보자용 가이드">
+  <title>브라우저와 Firebase 서버 사이: SOP·CORS·함수 실행 위치 가이드</title>
+  <style>
+    :root {
+      --ink: #162333;
+      --muted: #687587;
+      --line: #dce4eb;
+      --paper: #ffffff;
+      --canvas: #f4f7f8;
+      --navy: #102a43;
+      --blue: #1665d8;
+      --blue-deep: #114a9e;
+      --blue-soft: #edf5ff;
+      --teal: #087c73;
+      --teal-deep: #06645d;
+      --teal-soft: #eaf8f5;
+      --violet: #6651c7;
+      --violet-soft: #f3f0ff;
+      --amber: #9a5a00;
+      --amber-soft: #fff6e5;
+      --red: #bd2e3b;
+      --red-soft: #fff0f2;
+      --green: #14784d;
+      --green-soft: #eaf7ef;
+      --shadow: 0 24px 70px rgba(16,42,67,.13);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 5% 0, rgba(22,101,216,.10), transparent 29rem),
+        radial-gradient(circle at 100% 38rem, rgba(8,124,115,.08), transparent 27rem),
+        var(--canvas);
+      font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      line-height: 1.72;
+      word-break: keep-all;
+    }
+    a { color: var(--blue-deep); text-underline-offset: 3px; }
+    button { font: inherit; }
+    h1, h2, h3, h4 { line-height: 1.34; letter-spacing: -.027em; }
+    h1 { margin: 0; max-width: 990px; font-size: clamp(2.2rem, 5vw, 4.2rem); }
+    h2 { margin: 0 0 12px; color: var(--navy); font-size: clamp(1.55rem, 3.1vw, 2.3rem); }
+    h3 { margin: 23px 0 8px; color: var(--navy); font-size: 1.16rem; }
+    h4 { margin: 0 0 6px; color: var(--navy); font-size: 1rem; }
+    p { margin: 9px 0; }
+    ul, ol { padding-left: 1.28rem; }
+    li { margin: 7px 0; }
+    li::marker { color: var(--blue); font-weight: 850; }
+    code {
+      padding: .14em .38em;
+      color: #8d245e;
+      border-radius: 5px;
+      background: #edf1f5;
+      font: .91em "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      word-break: break-word;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 15px 0;
+      padding: 20px;
+      color: #e8f4ff;
+      border-radius: 15px;
+      background: #12263a;
+      font-size: .86rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    pre code { padding: 0; color: inherit; background: transparent; }
+
+    .page { width: min(1180px, calc(100% - 32px)); margin: 26px auto 82px; }
+    .hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      min-height: 485px;
+      padding: 66px clamp(28px, 6vw, 78px);
+      color: white;
+      border-radius: 31px;
+      background: linear-gradient(130deg, #102a43 0%, #164f83 43%, #1665d8 70%, #087c73 125%);
+      box-shadow: var(--shadow);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 470px;
+      height: 470px;
+      right: -95px;
+      top: -190px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(159,255,235,.43), rgba(159,255,235,0) 68%);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 300px;
+      height: 300px;
+      left: 46%;
+      bottom: -250px;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 50%;
+      box-shadow: 0 0 0 48px rgba(255,255,255,.05), 0 0 0 98px rgba(255,255,255,.03);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 17px;
+      color: #bcecff;
+      font-size: .82rem;
+      font-weight: 880;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 26px; height: 2px; background: #8cf2df; }
+    .hero-copy { max-width: 930px; margin-top: 22px; color: #e7f5ff; font-size: 1.1rem; }
+    .hero-badges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 29px; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border: 1px solid rgba(255,255,255,.23);
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+      font-size: .91rem;
+      font-weight: 760;
+    }
+    .hero-badge::before { content: "✓"; color: #a7f3d0; font-weight: 950; }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: 1.5fr repeat(3, 1fr);
+      overflow: hidden;
+      position: relative;
+      z-index: 2;
+      margin: -39px 34px 0;
+      border: 1px solid rgba(220,228,235,.97);
+      border-radius: 18px;
+      background: rgba(255,255,255,.97);
+      box-shadow: 0 16px 42px rgba(16,42,67,.12);
+      backdrop-filter: blur(12px);
+    }
+    .summary-item { padding: 22px; border-right: 1px solid var(--line); }
+    .summary-item:last-child { border-right: 0; }
+    .summary-item span { display: block; color: var(--muted); font-size: .79rem; font-weight: 760; }
+    .summary-item strong { display: block; margin-top: 4px; color: var(--navy); font-size: 1.11rem; }
+    .summary-main { background: linear-gradient(135deg, var(--blue-soft), #fbfdff); }
+    .summary-main strong { color: var(--blue-deep); }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      position: sticky;
+      top: 10px;
+      z-index: 20;
+      margin: 26px 0 32px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 8px 28px rgba(16,42,67,.07);
+      backdrop-filter: blur(15px);
+    }
+    nav a {
+      padding: 7px 11px;
+      color: var(--navy);
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: .87rem;
+      font-weight: 770;
+    }
+    nav a:hover, nav a:focus-visible { color: var(--blue-deep); background: var(--blue-soft); outline: none; }
+
+    section {
+      margin-top: 28px;
+      padding: clamp(25px, 4.3vw, 46px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 9px 34px rgba(16,42,67,.055);
+      scroll-margin-top: 94px;
+    }
+    .section-no { display: block; margin-bottom: 7px; color: var(--blue); font-size: .79rem; font-weight: 900; letter-spacing: .12em; }
+    .lead { max-width: 940px; color: var(--muted); font-size: 1.04rem; }
+    .fine { color: var(--muted); font-size: .88rem; }
+    .mt-18 { margin-top: 18px; }
+    .mt-22 { margin-top: 22px; }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card { padding: 21px; border: 1px solid var(--line); border-radius: 16px; background: white; }
+    .card h3 { margin-top: 0; }
+    .card p:last-child { margin-bottom: 0; }
+    .tint-blue { background: linear-gradient(145deg, var(--blue-soft), white 75%); border-color: #c6dafa; }
+    .tint-teal { background: linear-gradient(145deg, var(--teal-soft), white 75%); border-color: #b8e2dc; }
+    .tint-violet { background: linear-gradient(145deg, var(--violet-soft), white 75%); border-color: #d9d1f9; }
+    .tint-amber { background: linear-gradient(145deg, var(--amber-soft), white 75%); border-color: #efd5a5; }
+    .tint-green { background: linear-gradient(145deg, var(--green-soft), white 75%); border-color: #bde2cc; }
+
+    .mini-icon {
+      display: grid;
+      place-items: center;
+      width: 45px;
+      height: 45px;
+      margin-bottom: 13px;
+      color: white;
+      border-radius: 13px;
+      background: var(--blue);
+      font-size: .77rem;
+      font-weight: 930;
+      box-shadow: 0 8px 18px rgba(22,101,216,.20);
+    }
+    .tint-teal .mini-icon { background: var(--teal); }
+    .tint-violet .mini-icon { background: var(--violet); }
+    .tint-amber .mini-icon { background: var(--amber); }
+    .tint-green .mini-icon { background: var(--green); }
+
+    .callout { margin: 20px 0; padding: 18px 20px; border-left: 5px solid var(--blue); border-radius: 0 13px 13px 0; background: var(--blue-soft); }
+    .callout strong { color: var(--blue-deep); }
+    .callout.good { border-color: var(--green); background: var(--green-soft); }
+    .callout.good strong { color: #10633f; }
+    .callout.warn { border-color: var(--amber); background: var(--amber-soft); }
+    .callout.warn strong { color: #7d4900; }
+    .callout.danger { border-color: var(--red); background: var(--red-soft); }
+    .callout.danger strong { color: #9f202e; }
+
+    .worlds {
+      display: grid;
+      grid-template-columns: 1fr 90px 1fr;
+      gap: 15px;
+      align-items: stretch;
+      margin-top: 25px;
+    }
+    .world {
+      overflow: hidden;
+      border: 2px solid #bcd4f7;
+      border-radius: 19px;
+      background: #f8fbff;
+    }
+    .world.server { border-color: #cfc7f8; background: #faf9ff; }
+    .world-head { padding: 17px 20px; color: white; background: var(--blue); }
+    .world.server .world-head { background: var(--violet); }
+    .world-head small { display: block; opacity: .82; font-size: .73rem; font-weight: 800; letter-spacing: .08em; }
+    .world-head strong { display: block; margin-top: 3px; font-size: 1.12rem; }
+    .world-body { display: grid; gap: 10px; padding: 20px; }
+    .world-item { padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: white; }
+    .world-item strong { display: block; color: var(--navy); font-size: .91rem; }
+    .world-item small { display: block; margin-top: 3px; color: var(--muted); font-size: .78rem; }
+    .bridge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-width: 0;
+      padding: 12px 0;
+      text-align: center;
+    }
+    .bridge-flows { display: grid; gap: 8px; width: 100%; }
+    .bridge-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 34px;
+      padding: 6px 5px;
+      border: 1px solid;
+      border-radius: 10px;
+      background: white;
+      font-size: .72rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+    .bridge-flow.request { color: var(--blue-deep); border-color: #b9d2f7; background: var(--blue-soft); }
+    .bridge-flow.response { color: var(--teal-deep); border-color: #b6ddd7; background: var(--teal-soft); }
+    .bridge-symbol { font-size: 1.35rem; line-height: 1; font-weight: 950; }
+    .bridge-symbol.to-server::before { content: "→"; }
+    .bridge-symbol.to-browser::before { content: "←"; }
+    .bridge strong { color: var(--teal-deep); font-size: .82rem; }
+    .bridge small { color: var(--muted); font-size: .72rem; }
+
+    .word-map { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 15px; margin-top: 23px; }
+    .word-card { padding: 22px; border: 1px solid var(--line); border-radius: 17px; background: white; }
+    .word-card span { display: inline-block; margin-bottom: 11px; padding: 5px 9px; border-radius: 999px; color: var(--blue-deep); background: var(--blue-soft); font-size: .72rem; font-weight: 900; }
+    .word-card:nth-child(2) span { color: var(--teal-deep); background: var(--teal-soft); }
+    .word-card:nth-child(3) span { color: #4e3da4; background: var(--violet-soft); }
+    .word-card strong { display: block; color: var(--navy); }
+    .word-card p { color: var(--muted); font-size: .91rem; }
+
+    .origin-formula { display: grid; grid-template-columns: repeat(5, auto); gap: 10px; align-items: center; justify-content: center; margin: 24px 0; padding: 24px; border: 1px solid #bfd6f8; border-radius: 18px; background: var(--blue-soft); }
+    .origin-part { padding: 12px 16px; border: 1px solid #a9c8f3; border-radius: 11px; color: var(--blue-deep); background: white; text-align: center; font-weight: 840; }
+    .origin-op { color: #718096; font-size: 1.2rem; font-weight: 900; }
+    .origin-result { padding: 12px 16px; color: white; border-radius: 11px; background: var(--blue); font-weight: 850; }
+
+    .same-different { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .address-box { padding: 21px; border: 1px solid var(--line); border-radius: 16px; background: #fbfcfd; }
+    .address-box.same { border-color: #bce1cc; background: var(--green-soft); }
+    .address-box.different { border-color: #efd3a0; background: var(--amber-soft); }
+    .address { display: block; margin: 8px 0; padding: 9px 11px; border: 1px solid rgba(16,42,67,.15); border-radius: 8px; background: white; font: .8rem "SFMono-Regular", Consolas, monospace; word-break: break-all; }
+    .verdict { display: inline-block; margin-top: 9px; padding: 5px 9px; border-radius: 999px; color: #12643e; background: #dff2e7; font-size: .74rem; font-weight: 900; }
+    .different .verdict { color: #7c4900; background: #fce9c7; }
+
+    .sop-scene { display: grid; grid-template-columns: 1fr 60px 1fr; gap: 13px; align-items: center; margin-top: 24px; }
+    .site-card { padding: 22px; border: 2px solid #c2d8f8; border-radius: 18px; background: #f8fbff; text-align: center; }
+    .site-card.foreign { border-color: #efcda1; background: #fffaf0; }
+    .site-card strong { display: block; color: var(--navy); }
+    .site-card small { display: block; margin-top: 6px; color: var(--muted); }
+    .sop-wall { text-align: center; }
+    .wall { width: 7px; height: 118px; margin: auto; border-radius: 999px; background: linear-gradient(var(--red), #f59e0b); }
+    .sop-wall strong { display: block; margin-top: 8px; color: var(--red); font-size: .78rem; }
+
+    .cors-gate { display: grid; grid-template-columns: 1fr 120px 1fr; gap: 15px; align-items: center; margin-top: 24px; }
+    .gate-box { padding: 23px; border: 2px solid #bdd5f8; border-radius: 18px; background: #f8fbff; text-align: center; }
+    .gate-box.server { border-color: #bae0da; background: #f8fffd; }
+    .gate-box strong { display: block; color: var(--navy); }
+    .gate-box small { display: block; margin-top: 6px; color: var(--muted); }
+    .gate-middle { text-align: center; }
+    .gate-icon { display: grid; place-items: center; width: 62px; height: 62px; margin: auto; color: white; border-radius: 18px; background: var(--teal); font-size: .8rem; font-weight: 900; box-shadow: 0 10px 24px rgba(8,124,115,.22); }
+    .gate-middle strong { display: block; margin-top: 8px; color: var(--teal-deep); font-size: .8rem; }
+
+    .preflight {
+      display: grid;
+      grid-template-columns: 1fr 130px 1fr;
+      gap: 14px;
+      align-items: stretch;
+      margin-top: 24px;
+    }
+    .preflight-side { padding: 22px; border: 2px solid #bdd6f8; border-radius: 18px; background: #f8fbff; }
+    .preflight-side.server { border-color: #cfc8f8; background: #faf9ff; }
+    .preflight-side > strong { display: block; color: var(--navy); text-align: center; }
+    .message { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: white; }
+    .message span { display: block; color: var(--muted); font-size: .71rem; font-weight: 850; letter-spacing: .06em; }
+    .message strong { display: block; margin-top: 3px; color: var(--navy); font-size: .87rem; }
+    .preflight-arrows { display: grid; align-content: center; gap: 24px; }
+    .flight-arrow { position: relative; height: 3px; border-radius: 999px; background: var(--blue); }
+    .flight-arrow::after { content: "›"; position: absolute; right: -2px; top: -17px; color: var(--blue); font-size: 1.65rem; font-weight: 950; }
+    .flight-arrow.back { background: var(--teal); transform: rotate(180deg); }
+    .flight-arrow small { position: absolute; left: 50%; bottom: 8px; width: 130px; transform: translateX(-50%); color: var(--muted); text-align: center; font-size: .69rem; }
+    .flight-arrow.back small { transform: translateX(-50%) rotate(180deg); }
+
+    .sequence { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 9px; margin-top: 25px; }
+    .seq { position: relative; min-height: 148px; padding: 18px 12px; border: 1px solid var(--line); border-radius: 15px; background: white; text-align: center; }
+    .seq:not(:last-child)::after { content: "›"; position: absolute; right: -10px; top: 54px; z-index: 2; color: #7c8a9d; font-size: 1.35rem; font-weight: 950; }
+    .seq.browser { border-color: #c1d8fa; background: var(--blue-soft); }
+    .seq.infra { border-color: #d0c8f8; background: var(--violet-soft); }
+    .seq.handler { border-color: #b9e1da; background: var(--teal-soft); }
+    .seq-no { display: grid; place-items: center; width: 29px; height: 29px; margin: 0 auto 10px; color: white; border-radius: 50%; background: #69788d; font-size: .73rem; font-weight: 900; }
+    .seq.browser .seq-no { background: var(--blue); }
+    .seq.infra .seq-no { background: var(--violet); }
+    .seq.handler .seq-no { background: var(--teal); }
+    .seq strong { display: block; color: var(--navy); font-size: .87rem; }
+    .seq small { display: block; margin-top: 6px; color: var(--muted); font-size: .74rem; line-height: 1.5; }
+
+    .layers { display: grid; gap: 11px; margin-top: 23px; }
+    .layer { display: grid; grid-template-columns: 110px 1fr 1.2fr; gap: 16px; align-items: center; padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: white; }
+    .layer-name { padding: 7px 10px; color: white; border-radius: 9px; background: var(--blue); text-align: center; font-size: .78rem; font-weight: 900; }
+    .layer:nth-child(2) .layer-name { background: var(--teal); }
+    .layer:nth-child(3) .layer-name { background: var(--violet); }
+    .layer:nth-child(4) .layer-name { background: var(--green); }
+    .layer:nth-child(5) .layer-name { background: var(--amber); }
+    .layer strong { color: var(--navy); }
+    .layer p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: .91rem; }
+    th, td { padding: 13px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--navy); background: #f0f4f6; }
+    tbody tr:nth-child(even) td { background: #fbfcfd; }
+
+    .mistakes { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 13px; margin-top: 22px; }
+    .mistake { display: grid; grid-template-columns: 40px 1fr; gap: 12px; padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+    .mistake-mark { display: grid; place-items: center; width: 38px; height: 38px; color: white; border-radius: 11px; background: var(--red); font-weight: 900; }
+    .mistake strong { display: block; color: var(--navy); }
+    .mistake p { margin: 4px 0 0; color: var(--muted); font-size: .89rem; }
+
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { position: relative; padding-left: 27px; }
+    .checklist li::before { content: "□"; position: absolute; left: 0; top: -1px; color: var(--blue); font-size: 1.12rem; font-weight: 900; }
+
+    .verdict-box { overflow: hidden; margin-top: 23px; border: 2px solid #b9ddd7; border-radius: 20px; background: #f7fffd; }
+    .verdict-head { padding: 18px 22px; color: white; background: linear-gradient(90deg, var(--teal-deep), var(--teal)); }
+    .verdict-head strong { font-size: 1.12rem; }
+    .verdict-body { padding: 23px; }
+    .question-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-top: 17px; }
+    .question { padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+    .question span { display: block; color: var(--muted); font-size: .73rem; font-weight: 850; }
+    .question strong { display: block; margin-top: 5px; color: var(--navy); }
+
+    .prompt-box { overflow: hidden; margin-top: 21px; border: 1px solid #c8d2de; border-radius: 17px; background: #12263a; }
+    .prompt-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 13px 17px; color: #d8ecff; border-bottom: 1px solid rgba(255,255,255,.12); background: #19344d; font-size: .82rem; font-weight: 850; }
+    .copy-button { padding: 7px 11px; color: #eaf5ff; border: 1px solid rgba(255,255,255,.23); border-radius: 8px; background: rgba(255,255,255,.08); cursor: pointer; font-size: .78rem; font-weight: 800; }
+    .copy-button:hover, .copy-button:focus-visible { background: rgba(255,255,255,.15); outline: 2px solid #a9dcff; outline-offset: 2px; }
+    .prompt-text { margin: 0; color: #e8f3fc; border-radius: 0; background: transparent; }
+
+    details { margin-top: 11px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+    summary { padding: 15px 17px; color: var(--navy); cursor: pointer; font-weight: 820; }
+    details > div { padding: 0 17px 17px; color: var(--muted); }
+
+    footer { margin-top: 30px; padding: 28px; color: #dbe9f3; border-radius: 20px; background: var(--navy); }
+    footer strong { color: white; }
+    footer a { color: #99d9ff; }
+    .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 26px; }
+    .skip-link { position: fixed; left: 12px; top: -60px; z-index: 100; padding: 10px 14px; color: white; border-radius: 8px; background: var(--navy); }
+    .skip-link:focus { top: 12px; }
+
+    @media (max-width: 980px) {
+      .summary-strip { grid-template-columns: repeat(2,1fr); }
+      .summary-item:nth-child(2) { border-right: 0; }
+      .summary-item:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .sequence { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .seq:not(:last-child)::after { display: none; }
+      .question-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .grid-4 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      body { word-break: normal; }
+      .page { width: min(100% - 20px, 1180px); margin-top: 10px; }
+      .hero { min-height: auto; padding: 45px 24px 76px; border-radius: 22px; }
+      .summary-strip { grid-template-columns: 1fr; margin: -39px 14px 0; }
+      .summary-item { border-right: 0; border-bottom: 1px solid var(--line); }
+      .summary-item:last-child { border-bottom: 0; }
+      nav { position: static; }
+      section { padding: 25px 19px; border-radius: 18px; }
+      .grid-2, .grid-3, .grid-4, .word-map, .same-different, .mistakes, .question-grid, .footer-grid { grid-template-columns: 1fr; }
+      .worlds, .sop-scene, .cors-gate, .preflight { grid-template-columns: 1fr; }
+      .bridge { min-height: 150px; padding: 12px 0; }
+      .bridge-flows { width: 132px; }
+      .bridge-symbol.to-server::before { content: "↓"; }
+      .bridge-symbol.to-browser::before { content: "↑"; }
+      .sop-wall .wall { width: 100%; height: 7px; }
+      .gate-middle { padding: 5px 0; }
+      .preflight-arrows { min-height: 110px; }
+      .flight-arrow { transform: rotate(90deg); }
+      .flight-arrow.back { transform: rotate(-90deg); }
+      .origin-formula { grid-template-columns: 1fr; }
+      .origin-op { transform: rotate(90deg); text-align: center; }
+      .sequence { grid-template-columns: 1fr; }
+      .layer { grid-template-columns: 1fr; gap: 7px; }
+      table { min-width: 720px; }
+      .table-wrap { overflow-x: auto; }
+    }
+
+    @media print {
+      body { background: white; font-size: 10.5pt; }
+      .page { width: 100%; margin: 0; }
+      .hero { min-height: auto; padding: 32px; border-radius: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .summary-strip { margin: 0; box-shadow: none; }
+      nav, .copy-button { display: none; }
+      section { break-inside: avoid; box-shadow: none; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <div class="page">
+    <header class="hero">
+      <p class="eyebrow">Browser–server boundary guide</p>
+      <h1>브라우저와 Firebase 서버 사이<br>SOP·CORS·함수 실행 위치 이해하기</h1>
+      <p class="hero-copy">하나의 GitHub Pages에서 학생 화면과 교사 대시보드를 제공하고 Firebase Authentication·Firestore·Callable Function을 사용하는 앱을 기준으로 설명합니다. 어떤 함수가 브라우저에서 실행되고 어떤 함수가 Firebase 서버에서 실행되는지, 서로 다른 출처가 어떤 규칙으로 통신하는지 한 흐름으로 연결합니다.</p>
+      <div class="hero-badges" aria-label="문서 핵심 주제">
+        <span class="hero-badge">브라우저 함수와 서버 함수</span>
+        <span class="hero-badge">동일 출처 정책 SOP</span>
+        <span class="hero-badge">CORS와 OPTIONS</span>
+        <span class="hero-badge">Callable 통신 흐름</span>
+      </div>
+    </header>
+
+    <div class="summary-strip" aria-label="문서 요약">
+      <div class="summary-item summary-main"><span>핵심 관점</span><strong>SOP·CORS는 서로 다른 출처의 브라우저 통신 규칙</strong></div>
+      <div class="summary-item"><span>브라우저 쪽</span><strong>SDK로 요청</strong></div>
+      <div class="summary-item"><span>Firebase 쪽</span><strong>서버 함수 실행</strong></div>
+      <div class="summary-item"><span>후반 핵심</span><strong>인증·권한과 구분</strong></div>
+    </div>
+
+    <nav aria-label="문서 목차">
+      <a href="#app">현재 앱</a>
+      <a href="#function-words">함수 구분</a>
+      <a href="#origin">출처</a>
+      <a href="#sop">SOP</a>
+      <a href="#cors">CORS</a>
+      <a href="#options">OPTIONS</a>
+      <a href="#callable">Callable</a>
+      <a href="#direct">직접 통신 비교</a>
+      <a href="#mistakes">오해와 점검</a>
+      <a href="#verdict">총평</a>
+    </nav>
+
+    <main id="main">
+      <section id="app">
+        <span class="section-no">01 · CURRENT APP</span>
+        <h2>현재 앱에는 두 실행 공간이 있습니다</h2>
+        <p class="lead">GitHub Pages가 화면 파일을 제공하더라도 실제 JavaScript는 사용자의 브라우저에서 실행됩니다. 비밀키·관리자 권한·Gemini 호출처럼 브라우저에 맡길 수 없는 작업은 Firebase Functions 서버에서 실행됩니다.</p>
+
+        <div class="worlds" aria-label="브라우저 영역과 Firebase 서버 영역">
+          <article class="world">
+            <div class="world-head"><small>PUBLIC CLIENT AREA</small><strong>사용자 브라우저</strong></div>
+            <div class="world-body">
+              <div class="world-item"><strong>학생·교사 HTML 화면</strong><small>GitHub Pages에서 내려받아 표시</small></div>
+              <div class="world-item"><strong>Firebase 클라이언트 SDK</strong><small>로그인·Firestore·Callable 요청</small></div>
+              <div class="world-item"><strong>공개되는 JavaScript</strong><small>사용자가 확인하고 수정할 수 있음</small></div>
+            </div>
+          </article>
+
+          <div class="bridge" aria-hidden="true">
+            <strong>HTTPS 통신</strong>
+            <div class="bridge-flows">
+              <div class="bridge-flow request"><span>요청</span><b class="bridge-symbol to-server"></b></div>
+              <div class="bridge-flow response"><b class="bridge-symbol to-browser"></b><span>응답</span></div>
+            </div>
+            <small>SOP·CORS 적용</small>
+          </div>
+
+          <article class="world server">
+            <div class="world-head"><small>TRUSTED SERVER AREA</small><strong>Firebase 서버</strong></div>
+            <div class="world-body">
+              <div class="world-item"><strong>Firebase Functions</strong><small>개발자가 만든 서버 코드 실행</small></div>
+              <div class="world-item"><strong>Callable 인프라</strong><small>CORS·토큰·통신 규격 처리</small></div>
+              <div class="world-item"><strong>Secret Manager</strong><small>Gemini API 키 비공개 보관</small></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="callout good">
+          <strong>서버리스는 서버가 없다는 뜻이 아닙니다.</strong><br>
+          Google이 서버 컴퓨터와 확장을 관리하고 개발자는 필요한 함수 코드를 작성한다는 뜻입니다. GitHub Pages에는 자체 백엔드가 없지만 Firebase Functions가 사용자 정의 백엔드 역할을 합니다.
+        </div>
+      </section>
+
+      <section id="function-words">
+        <span class="section-no">02 · THREE MEANINGS OF FUNCTION</span>
+        <h2>‘함수’라는 같은 단어를 세 가지로 구분하기</h2>
+        <p class="lead">혼란의 가장 큰 원인은 JavaScript 함수, Firebase 클라이언트 SDK 함수, Firebase Functions라는 제품 이름이 모두 ‘함수’라는 단어를 사용한다는 점입니다.</p>
+
+        <div class="word-map">
+          <article class="word-card">
+            <span>브라우저</span>
+            <strong>클라이언트 SDK 함수</strong>
+            <p><code>signInWithPopup()</code>, <code>getDoc()</code>, <code>setDoc()</code>, <code>httpsCallable()</code>처럼 브라우저에서 Firebase 서비스에 요청하는 JavaScript 함수입니다.</p>
+          </article>
+          <article class="word-card">
+            <span>Firebase 서버</span>
+            <strong>Callable Function</strong>
+            <p><code>onCall()</code>로 정의하여 배포한 서버 함수입니다. 교사 역할 확인, Gemini 호출, 초안 저장 같은 실제 업무를 수행합니다.</p>
+          </article>
+          <article class="word-card">
+            <span>서버 내부</span>
+            <strong>비공개 보조 함수</strong>
+            <p><code>verifyTeacher()</code>, <code>callGemini()</code>처럼 Callable Function 내부에서만 사용하는 일반 서버 함수입니다. 브라우저가 직접 호출할 수 없습니다.</p>
+          </article>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>예시</th><th>실행 위치</th><th>역할</th><th>브라우저가 직접 실행?</th></tr></thead>
+            <tbody>
+              <tr><td><code>setDoc()</code></td><td>브라우저</td><td>Firestore에 저장 요청</td><td>예</td></tr>
+              <tr><td><code>httpsCallable()</code></td><td>브라우저</td><td>Callable Function 원격 호출</td><td>예</td></tr>
+              <tr><td><code>onCall()</code>로 만든 함수</td><td>Firebase 서버</td><td>실제 서버 업무 수행</td><td>아니요, 원격 실행 요청만 가능</td></tr>
+              <tr><td><code>callGemini()</code> 보조 함수</td><td>Firebase 서버</td><td>서버 내부에서 외부 AI 호출</td><td>아니요</td></tr>
+              <tr><td>Callable 인프라</td><td>Firebase 서버</td><td>CORS·요청 형식·토큰 검증 지원</td><td>개발자 함수가 아니라 관리형 계층</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <strong><code>httpsCallable()</code>은 실행 요청을 보내고, <code>onCall()</code> 함수가 실제 일을 합니다.</strong><br>
+          브라우저가 서버 코드를 내려받아 실행하는 것이 아닙니다. 함수 이름과 요청 데이터를 보내고 서버에서 실행한 결과만 돌려받습니다.
+        </div>
+      </section>
+
+      <section id="origin">
+        <span class="section-no">03 · ORIGIN</span>
+        <h2>SOP와 CORS의 출발점: 출처란 무엇인가요?</h2>
+        <p class="lead">브라우저의 출처는 경로가 아니라 프로토콜, 호스트, 포트의 조합으로 판단합니다.</p>
+
+        <div class="origin-formula" aria-label="출처 구성 공식">
+          <div class="origin-part">프로토콜<br><small>https</small></div>
+          <div class="origin-op">+</div>
+          <div class="origin-part">호스트<br><small>school.github.io</small></div>
+          <div class="origin-op">+</div>
+          <div class="origin-result">포트<br><small>443</small></div>
+        </div>
+
+        <div class="same-different">
+          <article class="address-box same">
+            <h3>학생·교사 화면은 같은 출처</h3>
+            <span class="address">https://school.github.io/app/student/</span>
+            <span class="address">https://school.github.io/app/teacher/</span>
+            <p>경로만 다르며 프로토콜·호스트·포트가 같습니다.</p>
+            <span class="verdict">SAME ORIGIN</span>
+          </article>
+          <article class="address-box different">
+            <h3>Firebase Function은 다른 출처</h3>
+            <span class="address">https://school.github.io/app/teacher/</span>
+            <span class="address">https://region-project.cloudfunctions.net/function</span>
+            <p>호스트가 다르므로 교차 출처 통신입니다.</p>
+            <span class="verdict">CROSS ORIGIN</span>
+          </article>
+        </div>
+
+        <div class="callout warn">
+          <strong>폴더 분리는 화면 구조이지 출처 보안 경계가 아닙니다.</strong><br>
+          한 GitHub Pages의 <code>/student</code>와 <code>/teacher</code>는 같은 출처입니다. 학생이 교사용 JavaScript 파일 경로를 알아낼 수 있으므로 화면 숨김이 아니라 Firebase 서버의 권한 검사가 필요합니다.
+        </div>
+      </section>
+
+      <section id="sop">
+        <span class="section-no">04 · SAME-ORIGIN POLICY</span>
+        <h2>SOP: 브라우저가 기본적으로 세우는 출처 경계</h2>
+        <p class="lead">SOP, 즉 동일 출처 정책은 한 출처의 JavaScript가 다른 출처의 문서와 응답을 마음대로 읽지 못하도록 브라우저가 기본적으로 제한하는 정책입니다.</p>
+
+        <div class="sop-scene" aria-label="동일 출처 정책 개념도">
+          <div class="site-card">
+            <strong>school.github.io의 JavaScript</strong>
+            <small>현재 페이지의 DOM과 같은 출처 응답은 정상적으로 접근</small>
+          </div>
+          <div class="sop-wall" aria-hidden="true"><div class="wall"></div><strong>SOP 기본 제한</strong></div>
+          <div class="site-card foreign">
+            <strong>다른 출처의 응답</strong>
+            <small>서버가 명시적으로 허용하지 않으면 JavaScript가 응답을 읽지 못함</small>
+          </div>
+        </div>
+
+        <div class="grid grid-2 mt-22">
+          <article class="card tint-blue">
+            <div class="mini-icon">WHY</div>
+            <h3>왜 필요한가요?</h3>
+            <p>사용자가 악성 사이트를 열었을 때 그 사이트의 JavaScript가 사용자의 다른 로그인 서비스 응답을 마음대로 읽는 위험을 줄입니다.</p>
+          </article>
+          <article class="card tint-amber">
+            <div class="mini-icon">LIMIT</div>
+            <h3>어디까지 적용되나요?</h3>
+            <p>브라우저가 집행하는 정책입니다. 서버 프로그램, 명령줄 도구, API 테스트 도구가 똑같이 따르는 서버 방화벽은 아닙니다.</p>
+          </article>
+        </div>
+
+        <details>
+          <summary>다른 출처로 요청을 전혀 보낼 수 없다는 뜻인가요?</summary>
+          <div>아닙니다. SOP는 주로 다른 출처의 응답을 JavaScript가 읽고 활용하는 것을 제한합니다. 요청 종류에 따라 전송 자체가 일어날 수도 있습니다. 그래서 서버는 SOP만 믿지 말고 인증·권한·CSRF 등 필요한 방어를 별도로 갖춰야 합니다.</div>
+        </details>
+      </section>
+
+      <section id="cors">
+        <span class="section-no">05 · CROSS-ORIGIN RESOURCE SHARING</span>
+        <h2>CORS: 서버가 브라우저에 허용 범위를 알려 주는 규칙</h2>
+        <p class="lead">CORS는 SOP의 기본 제한을 필요한 범위에서 완화합니다. 서버가 어떤 출처·방식·헤더의 브라우저 요청을 허용할지 응답 헤더로 알려 주고, 브라우저가 그 정책을 집행합니다.</p>
+
+        <div class="cors-gate" aria-label="CORS 허용 개념도">
+          <div class="gate-box">
+            <strong>GitHub Pages 브라우저</strong>
+            <small>“이 출처에서 Firebase 서버의 응답을 읽고 싶습니다.”</small>
+          </div>
+          <div class="gate-middle" aria-hidden="true"><div class="gate-icon">CORS</div><strong>허용 정책 확인</strong></div>
+          <div class="gate-box server">
+            <strong>Firebase Callable 인프라</strong>
+            <small>허용 출처·메서드·헤더를 브라우저에 응답</small>
+          </div>
+        </div>
+
+        <div class="layers">
+          <div class="layer"><span class="layer-name">Origin</span><strong>어느 웹 출처인가?</strong><p>예: <code>https://school.github.io</code></p></div>
+          <div class="layer"><span class="layer-name">Method</span><strong>어떤 요청 방식인가?</strong><p>예: Callable의 실제 요청은 <code>POST</code></p></div>
+          <div class="layer"><span class="layer-name">Headers</span><strong>어떤 헤더를 보내는가?</strong><p>예: Content-Type, Authorization, App Check 관련 헤더</p></div>
+        </div>
+
+        <div class="callout">
+          <strong>CORS는 브라우저와 서버의 협력입니다.</strong><br>
+          브라우저가 필요 여부를 판단하고 정책을 집행하며, 서버는 무엇을 허용할지 응답합니다. 어느 한쪽만으로 완성되는 규칙이 아닙니다.
+        </div>
+      </section>
+
+      <section id="options">
+        <span class="section-no">06 · OPTIONS PREFLIGHT</span>
+        <h2>OPTIONS 사전 요청은 누가 보내고 누가 답하나요?</h2>
+        <p class="lead">개발자가 일반적으로 OPTIONS 요청 코드를 직접 작성하지 않습니다. SDK가 준비한 실제 요청을 브라우저가 살펴보고, 교차 출처이면서 단순 요청 조건을 벗어나면 브라우저가 자동으로 OPTIONS 사전 요청을 보냅니다.</p>
+
+        <div class="preflight" aria-label="OPTIONS 요청과 CORS 응답">
+          <div class="preflight-side">
+            <strong>브라우저</strong>
+            <div class="message"><span>판단</span><strong>다른 출처인가?</strong></div>
+            <div class="message"><span>판단</span><strong>JSON·Authorization 헤더를 쓰는가?</strong></div>
+            <div class="message"><span>자동 동작</span><strong>필요하면 OPTIONS 전송</strong></div>
+          </div>
+          <div class="preflight-arrows" aria-hidden="true">
+            <div class="flight-arrow"><small>OPTIONS 질문</small></div>
+            <div class="flight-arrow back"><small>CORS 응답</small></div>
+          </div>
+          <div class="preflight-side server">
+            <strong>Callable 인프라</strong>
+            <div class="message"><span>확인</span><strong>출처·방식·헤더 조건</strong></div>
+            <div class="message"><span>자동 동작</span><strong>허용 CORS 응답</strong></div>
+            <div class="message"><span>다음 단계</span><strong>허용되면 실제 POST 대기</strong></div>
+          </div>
+        </div>
+
+        <h3>사전 요청의 개념적인 질문</h3>
+        <pre><code>OPTIONS /generateFeedbackDraft
+Origin: https://school.github.io
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: authorization, content-type, x-firebase-appcheck</code></pre>
+
+        <h3>서버의 개념적인 답변</h3>
+        <pre><code>Access-Control-Allow-Origin: https://school.github.io
+Access-Control-Allow-Methods: POST
+Access-Control-Allow-Headers: authorization, content-type, x-firebase-appcheck</code></pre>
+
+        <div class="grid grid-3 mt-22">
+          <article class="card tint-blue">
+            <h3>판단·전송 주체</h3>
+            <p><strong>브라우저</strong>가 필요 여부를 판단하고 OPTIONS를 자동 전송합니다. Firebase SDK가 직접 OPTIONS 코드를 작성하는 것은 아닙니다.</p>
+          </article>
+          <article class="card tint-violet">
+            <h3>응답 주체</h3>
+            <p><strong>Firebase Callable 인프라</strong>가 <code>onCall()</code> 함수 본문 앞에서 사전 요청을 자동으로 처리합니다.</p>
+          </article>
+          <article class="card tint-teal">
+            <h3>업무 실행 여부</h3>
+            <p>OPTIONS만으로 교사 검사·Gemini 호출·Firestore 저장은 실행되지 않습니다. 실제 POST가 도착한 뒤 수행됩니다.</p>
+          </article>
+        </div>
+
+        <div class="callout warn">
+          <strong>OPTIONS는 요청의 정당성을 심사하지 않습니다.</strong><br>
+          “이 출처와 방식으로 브라우저 통신을 허용하는가?”만 확인합니다. 실제 사용자가 교사인지 판단하는 단계는 뒤의 실제 Callable 요청입니다.
+        </div>
+      </section>
+
+      <section id="callable">
+        <span class="section-no">07 · CALLABLE END TO END</span>
+        <h2>교사가 AI 초안을 요청할 때의 전체 순서</h2>
+        <p class="lead">SOP·CORS는 서버 함수 실행 전 통신 단계에 있고, Authentication과 역할 검사는 실제 요청 단계에 있습니다.</p>
+
+        <div class="sequence" aria-label="Callable Function 전체 요청 순서">
+          <div class="seq browser"><span class="seq-no">1</span><strong>SDK 호출</strong><small>교사 화면이 <code>httpsCallable()</code> 실행</small></div>
+          <div class="seq browser"><span class="seq-no">2</span><strong>브라우저 판단</strong><small>교차 출처와 요청 헤더 확인</small></div>
+          <div class="seq infra"><span class="seq-no">3</span><strong>OPTIONS</strong><small>필요하면 사전 요청과 CORS 응답</small></div>
+          <div class="seq browser"><span class="seq-no">4</span><strong>실제 POST</strong><small>요청 데이터와 Firebase ID Token 전달</small></div>
+          <div class="seq infra"><span class="seq-no">5</span><strong>토큰 검증</strong><small>Callable 인프라가 형식·Auth·App Check 확인</small></div>
+          <div class="seq handler"><span class="seq-no">6</span><strong>서버 함수</strong><small>교사 역할·담당 범위 확인 후 Gemini 호출</small></div>
+          <div class="seq handler"><span class="seq-no">7</span><strong>결과 반환</strong><small>초안 저장 후 성공·오류를 SDK에 전달</small></div>
+        </div>
+
+        <h3>Callable 서버 내부에서도 입구와 보조 함수를 나눕니다</h3>
+        <div class="grid grid-2">
+          <article class="card tint-violet">
+            <div class="mini-icon">ENTRY</div>
+            <h3>브라우저가 호출하는 공개 입구</h3>
+            <p><code>generateFeedbackDraft</code>처럼 <code>onCall()</code>로 내보낸 함수입니다. 요청을 받아 검사를 통과시킨 뒤 내부 함수를 순서대로 실행합니다.</p>
+          </article>
+          <article class="card tint-teal">
+            <div class="mini-icon">INNER</div>
+            <h3>서버 내부에서만 쓰는 보조 함수</h3>
+            <p><code>verifyTeacher()</code>, <code>readSubmission()</code>, <code>callGemini()</code>, <code>saveDraft()</code>는 브라우저가 직접 호출할 수 없는 내부 코드입니다.</p>
+          </article>
+        </div>
+
+        <div class="callout danger">
+          <strong>서버 함수의 존재만으로 안전해지지는 않습니다.</strong><br>
+          Callable 인프라가 유효한 로그인 토큰을 확인해도 그 사용자가 교사라는 뜻은 아닙니다. 개발자의 <code>onCall()</code> 함수가 UID의 교사 역할과 담당 범위를 다시 확인해야 합니다.
+        </div>
+
+        <p class="fine">공식 참고: <a href="https://firebase.google.com/docs/functions/callable-reference" target="_blank" rel="noopener noreferrer">Callable Function 통신 규격</a> · <a href="https://firebase.google.com/docs/functions/callable" target="_blank" rel="noopener noreferrer">앱에서 Callable Function 호출하기</a></p>
+      </section>
+
+      <section id="direct">
+        <span class="section-no">08 · DIRECT SERVICE VS CUSTOM SERVER</span>
+        <h2>왜 Firestore에는 바로 요청하고 Gemini는 서버를 거치나요?</h2>
+        <p class="lead">Firebase 서비스와 통신한다고 모두 Callable Function이 필요한 것은 아닙니다. Firebase가 이미 제공하는 백엔드 서비스는 전용 SDK와 Security Rules로 직접 요청할 수 있고, 개발자가 만든 비밀 서버 작업만 Functions를 거칩니다.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>기능</th><th>브라우저의 함수</th><th>요청 대상</th><th>주요 서버 보호</th></tr></thead>
+            <tbody>
+              <tr><td>Google 로그인</td><td><code>signInWithPopup()</code></td><td>Firebase Authentication</td><td>Firebase의 인증 서비스</td></tr>
+              <tr><td>학생 제출물 저장</td><td><code>setDoc()</code></td><td>Cloud Firestore</td><td>Authentication + Firestore Rules</td></tr>
+              <tr><td>학생 피드백 조회</td><td><code>getDoc()</code></td><td>Cloud Firestore</td><td>소유자 UID를 검사하는 Rules</td></tr>
+              <tr><td>AI 초안 생성</td><td><code>httpsCallable()</code></td><td>Callable Function</td><td>Auth 검증 + 교사 역할 검사</td></tr>
+              <tr><td>Gemini 실제 호출</td><td>브라우저에서 하지 않음</td><td>서버 내부 보조 함수</td><td>Secret Manager + 호출 제한</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid grid-2 mt-22">
+          <article class="card tint-blue">
+            <h3>Firebase 기본 서비스</h3>
+            <p>Authentication과 Firestore는 브라우저용 SDK, 서버 API, 보안 규칙이 이미 준비되어 있습니다. 따라서 브라우저가 직접 서비스에 요청합니다.</p>
+          </article>
+          <article class="card tint-violet">
+            <h3>사용자 정의 서버 작업</h3>
+            <p>Gemini 비밀키 사용과 교사 전용 생성 절차는 Firebase에 미리 들어 있는 기능이 아니므로 개발자가 Functions에 작성하고 Callable로 호출합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="mistakes">
+        <span class="section-no">09 · COMMON MISUNDERSTANDINGS</span>
+        <h2>자주 생기는 오해와 점검 방법</h2>
+        <p class="lead">SOP·CORS·Callable의 위치를 잘못 이해하면 통신 오류를 보안 성공으로 착각하거나, 반대로 정상적인 CORS 오류를 데이터 권한 오류로 오해할 수 있습니다.</p>
+
+        <div class="mistakes">
+          <article class="mistake"><span class="mistake-mark">×</span><div><strong>“CORS를 허용했으니 교사만 접근한다.”</strong><p>출처 허용과 교사 역할은 별개입니다. 같은 Pages의 학생과 교사도 같은 출처입니다.</p></div></article>
+          <article class="mistake"><span class="mistake-mark">×</span><div><strong>“OPTIONS가 성공했으니 요청은 안전하다.”</strong><p>OPTIONS는 통신 조건만 확인합니다. 실제 POST에서 사용자와 권한을 검사합니다.</p></div></article>
+          <article class="mistake"><span class="mistake-mark">×</span><div><strong>“서버 함수는 브라우저로 내려온다.”</strong><p>브라우저는 서버 코드가 아니라 함수 이름과 요청값을 보내고 결과만 받습니다.</p></div></article>
+          <article class="mistake"><span class="mistake-mark">×</span><div><strong>“Firebase Functions 일부는 브라우저에서 실행된다.”</strong><p>Firebase Functions는 모두 서버에서 실행됩니다. 브라우저의 것은 클라이언트 SDK 함수입니다.</p></div></article>
+          <article class="mistake"><span class="mistake-mark">×</span><div><strong>“CORS 오류는 로그인 오류다.”</strong><p>CORS는 실제 함수에 도달하기 전에 발생할 수 있습니다. Auth 오류와 단계가 다릅니다.</p></div></article>
+          <article class="mistake"><span class="mistake-mark">×</span><div><strong>“CORS로 Gemini API 키를 보호한다.”</strong><p>브라우저에 키를 넣으면 이미 노출된 것입니다. 비밀키는 Secret Manager와 서버 함수에 둡니다.</p></div></article>
+        </div>
+
+        <h3>오류가 발생했을 때 어느 단계인지 확인하기</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>보이는 현상</th><th>가능한 단계</th><th>우선 확인할 것</th></tr></thead>
+            <tbody>
+              <tr><td>브라우저 콘솔의 CORS policy 오류</td><td>OPTIONS·CORS 단계</td><td>허용 출처, 함수 지역, Callable 정식 SDK 사용 여부</td></tr>
+              <tr><td><code>unauthenticated</code></td><td>실제 요청의 로그인 검증</td><td>로그인 완료 여부와 ID Token 전달</td></tr>
+              <tr><td><code>permission-denied</code></td><td>역할·담당 범위 검사</td><td>members 역할과 서버 함수의 권한 조건</td></tr>
+              <tr><td>Firestore permission denied</td><td>Firestore Rules</td><td>ownerUid, query 조건, Rules 배포 상태</td></tr>
+              <tr><td>Gemini 호출 실패</td><td>서버 내부 업무 단계</td><td>Secret Manager, API 설정, 할당량·약관·비용</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid grid-3 mt-22">
+          <article class="card"><h3>브라우저 확인</h3><ul class="checklist"><li>Network 탭에 OPTIONS가 보이는가?</li><li>그다음 실제 POST가 전송되는가?</li><li>요청 출처가 예상한 Pages 주소인가?</li></ul></article>
+          <article class="card"><h3>서버 확인</h3><ul class="checklist"><li>비로그인 요청이 거부되는가?</li><li>학생 계정 호출이 권한 오류인가?</li><li>OPTIONS만으로 업무 함수가 실행되지 않는가?</li></ul></article>
+          <article class="card"><h3>데이터 확인</h3><ul class="checklist"><li>학생은 자신의 데이터만 읽는가?</li><li>초안은 교사만 읽는가?</li><li>오류 로그에 토큰·답안·비밀키가 없는가?</li></ul></article>
+        </div>
+      </section>
+
+      <section id="verdict">
+        <span class="section-no">10 · FINAL VERDICT</span>
+        <h2>총평: 통신 허용과 사용자 권한을 분리해서 이해하세요</h2>
+        <p class="lead">SOP와 CORS는 매우 중요한 웹 보안 규칙이지만, 사용자의 신원·교사 역할·데이터 소유권을 증명하는 장치는 아닙니다.</p>
+
+        <div class="verdict-box">
+          <div class="verdict-head"><strong>각 계층은 서로 다른 질문에 답합니다</strong></div>
+          <div class="verdict-body">
+            <div class="question-grid">
+              <div class="question"><span>SOP·CORS</span><strong>어느 출처의 브라우저 통신을 허용하는가?</strong></div>
+              <div class="question"><span>Authentication · JWT</span><strong>요청한 사용자는 누구인가?</strong></div>
+              <div class="question"><span>역할 검사</span><strong>그 사용자가 교사 기능을 써도 되는가?</strong></div>
+              <div class="question"><span>Rules · 소유자 검사</span><strong>이 데이터에 접근할 권리가 있는가?</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="layers">
+          <div class="layer"><span class="layer-name">1 · SOP</span><strong>브라우저의 기본 출처 격리</strong><p>다른 출처의 응답을 JavaScript가 마음대로 읽지 못하게 합니다.</p></div>
+          <div class="layer"><span class="layer-name">2 · CORS</span><strong>필요한 출처 통신 허용</strong><p>서버가 허용 조건을 응답하고 브라우저가 집행합니다.</p></div>
+          <div class="layer"><span class="layer-name">3 · Auth</span><strong>Firebase ID Token 검증</strong><p>Callable 인프라가 인증된 UID를 확인해 <code>request.auth</code>로 제공합니다.</p></div>
+          <div class="layer"><span class="layer-name">4 · Role</span><strong>교사 역할과 담당 범위 검사</strong><p>개발자가 만든 서버 함수가 members 문서와 대상 제출물을 확인합니다.</p></div>
+          <div class="layer"><span class="layer-name">5 · Data</span><strong>소유권과 필드 규칙</strong><p>Firestore Rules 또는 서버 코드가 학생 자신의 데이터만 허용합니다.</p></div>
+        </div>
+
+        <div class="callout danger">
+          <strong>SOP·CORS를 인증이나 권한으로 사용하면 안 됩니다.</strong><br>
+          CORS가 GitHub Pages 출처를 허용해도 그 출처에는 학생 화면과 교사 화면이 함께 있습니다. 브라우저 밖의 프로그램은 CORS 정책을 보안 장벽으로 따르지 않을 수도 있습니다. 실제 보호는 Firebase ID Token 검증, 교사 역할 검사, 담당 범위 확인, Firestore Rules와 App Check를 함께 사용해야 합니다.
+        </div>
+
+        <div class="callout good">
+          <strong>현재 앱의 올바른 한 문장</strong><br>
+          브라우저의 Firebase SDK가 다른 출처의 Firebase 서버에 요청하고, SOP·CORS가 브라우저 통신을 조정하며, Callable 인프라가 요청 형식과 토큰을 확인하고, 개발자가 만든 서버 함수가 교사 권한과 실제 업무를 최종 판단합니다.
+        </div>
+      </section>
+
+      <section id="prompt">
+        <span class="section-no">11 · REQUEST FOR AI REVIEW</span>
+        <h2>AI에게 구조를 점검시킬 때 사용할 요청문</h2>
+        <p class="lead">코드 전체를 다시 만들게 하기보다 현재 프로젝트의 실행 위치와 통신 경계를 설명하게 하면 잘못된 설계를 발견하기 쉽습니다.</p>
+
+        <div class="prompt-box">
+          <div class="prompt-head"><span>복사하여 AI 코딩 도구에 전달</span><button class="copy-button" type="button" data-copy-target="review-prompt">복사</button></div>
+          <pre id="review-prompt" class="prompt-text"><code>현재 프로젝트는 하나의 GitHub Pages에 /student와 /teacher 화면이 있고 Firebase Authentication, Firestore, Firebase Callable Function을 사용합니다.
+
+프로젝트를 수정하기 전에 다음 내용을 파일별로 점검해 주세요.
+
+1. 브라우저에서 실행되는 HTML·JavaScript와 Firebase 클라이언트 SDK 함수를 구분해 주세요.
+2. Firebase 서버에서 실행되는 onCall() Callable Function과 서버 내부 보조 함수를 구분해 주세요.
+3. httpsCallable()은 호출 도구이고 실제 업무는 onCall() 서버 함수가 수행하는지 확인해 주세요.
+4. GitHub Pages와 Firebase Function이 서로 다른 출처라는 점을 확인해 주세요.
+5. Callable Function의 OPTIONS 사전 요청과 CORS는 Firebase Callable 인프라가 처리하도록 하고, 불필요한 CORS 코드를 중복 작성하지 않았는지 확인해 주세요.
+6. SOP와 CORS를 로그인, 교사 역할, 데이터 소유권 보안으로 사용하지 않았는지 확인해 주세요.
+7. 실제 Callable 요청에서 Firebase ID Token을 검증한 뒤 교사 역할과 담당 범위를 서버에서 별도로 검사하는지 확인해 주세요.
+8. 학생이 함수 이름을 알고 직접 호출해도 교사 전용 작업이 거부되는지 확인해 주세요.
+9. Gemini API 키가 브라우저 코드, Firestore, GitHub 저장소에 없고 Secret Manager에 있는지 확인해 주세요.
+10. 점검 결과를 ‘브라우저 영역’, ‘Callable 인프라’, ‘개발자 서버 함수’, ‘Firestore 권한’ 네 부분으로 나누어 초보자가 이해할 수 있게 설명해 주세요.
+
+아직 코드를 수정하지 말고 현재 구조, 위험한 부분, 필요한 테스트를 먼저 보고해 주세요.</code></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-grid">
+        <div>
+          <strong>기억할 한 문장</strong>
+          <p>SOP·CORS는 브라우저의 출처 간 통신을 조정하고, Firebase SDK는 요청하며, Callable Function은 서버에서 실행되고, 실제 권한은 Authentication·역할 검사·Rules가 판단합니다.</p>
+        </div>
+        <div>
+          <strong>문서 기준일</strong>
+          <p>2026년 7월 23일<br>Firebase SDK와 Functions의 세부 동작은 변경될 수 있으므로 구현 시점의 공식 문서를 다시 확인하세요.</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    document.querySelectorAll('[data-copy-target]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const target = document.getElementById(button.dataset.copyTarget);
+        if (!target) return;
+        try {
+          await navigator.clipboard.writeText(target.innerText);
+          const original = button.textContent;
+          button.textContent = '복사됨';
+          setTimeout(() => { button.textContent = original; }, 1600);
+        } catch (error) {
+          button.textContent = '직접 선택해 복사';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

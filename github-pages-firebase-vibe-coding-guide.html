@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="비전공 교사가 AI와 함께 하나의 GitHub Pages에 학생 화면과 교사 대시보드를 만들고 Firebase Authentication과 Firestore를 안전하게 연결하는 실전 가이드">
+  <title>바이브 코딩으로 만드는 학생·교사 Firebase 웹 앱 실전 가이드</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #657184;
+      --line: #dde4ee;
+      --paper: #fff;
+      --canvas: #f4f7fb;
+      --navy: #172554;
+      --indigo: #4f46e5;
+      --indigo-deep: #3730a3;
+      --indigo-soft: #eef2ff;
+      --cyan: #087f9c;
+      --cyan-soft: #ecfeff;
+      --green: #087f5b;
+      --green-soft: #eaf8f2;
+      --amber: #a55b00;
+      --amber-soft: #fff7e8;
+      --red: #c92a2a;
+      --red-soft: #fff1f2;
+      --violet: #7c3aed;
+      --violet-soft: #f5f3ff;
+      --shadow: 0 24px 70px rgba(23,37,84,.13);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 4% 0, rgba(79,70,229,.09), transparent 28rem),
+        radial-gradient(circle at 100% 34rem, rgba(8,145,178,.07), transparent 27rem),
+        var(--canvas);
+      font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      line-height: 1.72;
+      word-break: keep-all;
+    }
+
+    a { color: var(--indigo-deep); text-underline-offset: 3px; }
+    button, input { font: inherit; }
+    h1, h2, h3, h4 { line-height: 1.34; letter-spacing: -.027em; }
+    h1 { margin: 0; max-width: 940px; font-size: clamp(2.15rem, 5vw, 4.15rem); }
+    h2 { margin: 0 0 12px; color: var(--navy); font-size: clamp(1.55rem, 3.2vw, 2.3rem); }
+    h3 { margin: 24px 0 8px; color: var(--navy); font-size: 1.17rem; }
+    h4 { margin: 0 0 6px; color: var(--navy); font-size: 1rem; }
+    p { margin: 9px 0; }
+    ul, ol { padding-left: 1.28rem; }
+    li { margin: 7px 0; }
+    li::marker { color: var(--indigo); font-weight: 850; }
+    code {
+      padding: .14em .38em;
+      color: #9d174d;
+      border-radius: 5px;
+      background: #eef2f7;
+      font: .91em "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      word-break: break-word;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 15px 0;
+      padding: 21px;
+      color: #dfe9ff;
+      border-radius: 15px;
+      background: #111a2d;
+      font-size: .87rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+      tab-size: 2;
+    }
+    pre code { padding: 0; color: inherit; background: transparent; }
+
+    .page { width: min(1180px, calc(100% - 32px)); margin: 26px auto 80px; }
+    .hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      min-height: 470px;
+      padding: 64px clamp(28px, 6vw, 76px);
+      color: white;
+      border-radius: 30px;
+      background: linear-gradient(128deg, #121b37 0%, #2d247b 48%, #4f46e5 76%, #0e7490 125%);
+      box-shadow: var(--shadow);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 440px;
+      height: 440px;
+      right: -90px;
+      top: -170px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(103,232,249,.43), rgba(103,232,249,0) 68%);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 300px;
+      height: 300px;
+      left: 48%;
+      bottom: -245px;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 50%;
+      box-shadow: 0 0 0 48px rgba(255,255,255,.05), 0 0 0 98px rgba(255,255,255,.03);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 16px;
+      color: #c7d2fe;
+      font-size: .82rem;
+      font-weight: 850;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 25px; height: 2px; background: #67e8f9; }
+    .hero-copy { max-width: 900px; margin-top: 20px; color: #e6e8ff; font-size: 1.1rem; }
+    .hero-badges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 29px; }
+    .hero-badge {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 9px 14px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 999px;
+      background: rgba(255,255,255,.1);
+      backdrop-filter: blur(10px);
+      font-size: .91rem;
+      font-weight: 750;
+    }
+    .hero-badge::before { content: "✓"; color: #67e8f9; font-weight: 950; }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: 1.45fr repeat(3, 1fr);
+      overflow: hidden;
+      position: relative;
+      z-index: 2;
+      margin: -38px 34px 0;
+      border: 1px solid rgba(221,228,238,.96);
+      border-radius: 18px;
+      background: rgba(255,255,255,.97);
+      box-shadow: 0 16px 42px rgba(23,37,84,.12);
+      backdrop-filter: blur(12px);
+    }
+    .summary-item { padding: 22px; border-right: 1px solid var(--line); }
+    .summary-item:last-child { border-right: 0; }
+    .summary-item span { display: block; color: var(--muted); font-size: .8rem; font-weight: 750; }
+    .summary-item strong { display: block; margin-top: 4px; color: var(--navy); font-size: 1.16rem; }
+    .summary-main { background: linear-gradient(135deg, var(--indigo-soft), #fafbff); }
+    .summary-main strong { color: var(--indigo-deep); }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      position: sticky;
+      top: 10px;
+      z-index: 20;
+      margin: 26px 0 32px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 8px 28px rgba(23,37,84,.07);
+      backdrop-filter: blur(15px);
+    }
+    nav a {
+      padding: 7px 11px;
+      color: var(--navy);
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: .88rem;
+      font-weight: 760;
+    }
+    nav a:hover { color: var(--indigo); background: var(--indigo-soft); }
+
+    section {
+      margin-top: 28px;
+      padding: clamp(25px, 4.3vw, 46px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 9px 34px rgba(23,37,84,.055);
+      scroll-margin-top: 94px;
+    }
+    .section-no { display: block; margin-bottom: 7px; color: var(--indigo); font-size: .79rem; font-weight: 900; letter-spacing: .12em; }
+    .lead { max-width: 930px; color: var(--muted); font-size: 1.04rem; }
+    .fine { color: var(--muted); font-size: .88rem; }
+    .mt-20 { margin-top: 20px; }
+    .mt-22 { margin-top: 22px; }
+    .final-label { color: #99f6e4; }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .card { padding: 21px; border: 1px solid var(--line); border-radius: 16px; background: white; }
+    .card h3 { margin-top: 0; }
+    .card p:last-child { margin-bottom: 0; }
+    .tint-indigo { background: linear-gradient(145deg, var(--indigo-soft), white 72%); border-color: #cdd5ff; }
+    .tint-cyan { background: linear-gradient(145deg, var(--cyan-soft), white 72%); border-color: #bae8f2; }
+    .tint-green { background: linear-gradient(145deg, var(--green-soft), white 72%); border-color: #bfe6d8; }
+    .tint-amber { background: linear-gradient(145deg, var(--amber-soft), white 72%); border-color: #f0d8aa; }
+    .tint-violet { background: linear-gradient(145deg, var(--violet-soft), white 72%); border-color: #ddd6fe; }
+
+    .mini-icon {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      margin-bottom: 13px;
+      color: white;
+      border-radius: 12px;
+      background: var(--indigo);
+      font-weight: 950;
+      box-shadow: 0 8px 18px rgba(79,70,229,.2);
+    }
+    .tint-cyan .mini-icon { background: var(--cyan); }
+    .tint-green .mini-icon { background: var(--green); }
+    .tint-amber .mini-icon { background: var(--amber); }
+    .tint-violet .mini-icon { background: var(--violet); }
+
+    .callout { margin: 20px 0; padding: 18px 20px; border-left: 5px solid var(--indigo); border-radius: 0 13px 13px 0; background: var(--indigo-soft); }
+    .callout strong { color: var(--indigo-deep); }
+    .callout.good { border-color: var(--green); background: var(--green-soft); }
+    .callout.good strong { color: #066649; }
+    .callout.warn { border-color: var(--amber); background: var(--amber-soft); }
+    .callout.warn strong { color: #874b00; }
+    .callout.danger { border-color: var(--red); background: var(--red-soft); }
+    .callout.danger strong { color: #a61e1e; }
+
+    .browser { overflow: hidden; margin-top: 24px; border: 1px solid #cfd8e6; border-radius: 19px; background: #f8fafc; box-shadow: 0 18px 45px rgba(23,37,84,.11); }
+    .browser-bar { display: flex; gap: 7px; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--line); background: #edf2f8; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #fb7185; }
+    .dot:nth-child(2) { background: #fbbf24; }
+    .dot:nth-child(3) { background: #34d399; }
+    .address { flex: 1; margin-left: 8px; padding: 5px 12px; color: var(--muted); border: 1px solid #d7dfeb; border-radius: 7px; background: white; font: .81rem "SFMono-Regular", Consolas, monospace; }
+    .browser-body { padding: clamp(22px, 4vw, 38px); }
+
+    .architecture { display: grid; grid-template-columns: 1.25fr 58px 1fr 58px 1fr; gap: 9px; align-items: center; }
+    .site-shell { padding: 20px; border: 2px solid #aeb8ff; border-radius: 17px; background: #f7f7ff; }
+    .site-shell > strong { display: block; margin-bottom: 13px; color: var(--indigo-deep); text-align: center; }
+    .route { margin-top: 9px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+    .route strong { display: block; color: var(--navy); }
+    .route small { color: var(--muted); }
+    .service-box { padding: 22px 17px; border: 1px solid var(--line); border-radius: 16px; text-align: center; background: white; }
+    .service-box strong { display: block; color: var(--navy); }
+    .service-box small { color: var(--muted); }
+    .service-box.secure { background: var(--green-soft); border-color: #afe0cf; }
+    .arrow { color: var(--indigo); text-align: center; font-size: 1.8rem; font-weight: 950; }
+
+    .role-band { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 20px; }
+    .role { padding: 19px; border: 1px solid var(--line); border-radius: 15px; background: #fbfcfe; }
+    .role b { display: block; margin-bottom: 5px; color: var(--navy); }
+    .role span { color: var(--muted); font-size: .92rem; }
+    .role.teacher { border-top: 4px solid var(--indigo); }
+    .role.ai { border-top: 4px solid var(--violet); }
+    .role.firebase { border-top: 4px solid var(--green); }
+
+    .flow { counter-reset: flow; display: grid; gap: 12px; margin-top: 20px; padding: 0; list-style: none; }
+    .flow li { position: relative; margin: 0; padding: 17px 18px 17px 68px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+    .flow li::before { counter-increment: flow; content: counter(flow); position: absolute; left: 18px; top: 17px; display: grid; place-items: center; width: 33px; height: 33px; color: white; border-radius: 10px; background: linear-gradient(135deg, var(--indigo), var(--cyan)); font-weight: 950; }
+    .flow strong { color: var(--navy); }
+
+    .table-wrap { overflow-x: auto; margin-top: 17px; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; min-width: 730px; border-collapse: collapse; background: white; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--navy); background: #f3f6fa; font-size: .9rem; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 760; }
+    .yes { color: var(--green); font-weight: 850; }
+    .no { color: var(--red); font-weight: 850; }
+
+    .checkpoint { display: grid; grid-template-columns: 82px minmax(0,1fr); gap: 18px; align-items: start; padding: 19px; border: 1px solid var(--line); border-radius: 16px; background: #fbfcff; }
+    .checkpoint + .checkpoint { margin-top: 12px; }
+    .checkpoint-no { display: grid; place-items: center; width: 68px; height: 68px; color: white; border-radius: 20px; background: linear-gradient(145deg, var(--indigo), var(--cyan)); font-weight: 950; box-shadow: 0 10px 22px rgba(79,70,229,.18); }
+    .checkpoint h3 { margin: 0 0 6px; }
+    .checkpoint p { color: var(--muted); }
+    .checkpoint .done { display: inline-flex; margin-top: 8px; padding: 5px 10px; color: #066649; border: 1px solid #b9e0d2; border-radius: 999px; background: var(--green-soft); font-size: .8rem; font-weight: 820; }
+
+    .prompt-card { overflow: hidden; margin-top: 20px; border: 1px solid #cfd6fb; border-radius: 17px; background: white; box-shadow: 0 10px 28px rgba(55,48,163,.07); }
+    .prompt-head { display: flex; gap: 14px; align-items: center; justify-content: space-between; padding: 17px 19px; color: white; background: linear-gradient(120deg, #3730a3, #4f46e5 65%, #0e7490); }
+    .prompt-head div { min-width: 0; }
+    .prompt-head strong { display: block; font-size: 1rem; }
+    .prompt-head small { color: #e0e7ff; }
+    .copy-button { flex: 0 0 auto; padding: 8px 12px; color: var(--indigo-deep); border: 1px solid rgba(255,255,255,.55); border-radius: 9px; background: white; cursor: pointer; font-size: .84rem; font-weight: 850; }
+    .copy-button:hover { background: #eef2ff; }
+    .copy-button.copied { color: #066649; background: #dcfce7; }
+    .prompt-body { padding: 0 18px 18px; }
+    .prompt-body pre { margin-bottom: 0; max-height: 560px; }
+    .prompt-tip { padding: 13px 18px; color: var(--muted); border-top: 1px solid var(--line); background: #f8fafc; font-size: .86rem; }
+
+    .checklist { padding: 0; list-style: none; }
+    .checklist li { position: relative; margin: 0; padding: 12px 11px 12px 42px; border-bottom: 1px dashed var(--line); }
+    .checklist li:last-child { border-bottom: 0; }
+    .checklist li::before { content: "✓"; position: absolute; left: 10px; top: 12px; display: grid; place-items: center; width: 22px; height: 22px; color: white; border-radius: 50%; background: var(--green); font-size: .78rem; font-weight: 950; }
+    .checklist.avoid li::before { content: "!"; background: var(--red); }
+
+    .progress-list { display: grid; gap: 10px; margin-top: 20px; }
+    .progress-item { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 12px; align-items: start; padding: 14px 16px; border: 1px solid var(--line); border-radius: 13px; background: white; cursor: pointer; }
+    .progress-item input { width: 19px; height: 19px; margin-top: 3px; accent-color: var(--indigo); }
+    .progress-item strong { display: block; color: var(--navy); }
+    .progress-item small { display: block; color: var(--muted); }
+    .progress-item:has(input:checked) { border-color: #b8e1d2; background: var(--green-soft); }
+
+    .boundary { display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: stretch; margin-top: 20px; }
+    .boundary-box { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: white; }
+    .boundary-box.current { border-color: #b7decf; background: var(--green-soft); }
+    .boundary-box.next { border-color: #ddd6fe; background: var(--violet-soft); }
+    .boundary-arrow { display: grid; place-items: center; color: var(--violet); font-size: 1.7rem; font-weight: 950; }
+
+    .final-box { color: white; border: 0; background: linear-gradient(135deg, #172554, #4338ca 60%, #0e7490); }
+    .final-box h2 { color: white; }
+    .final-box .lead { color: #e0e7ff; }
+    .final-box .card { color: var(--ink); }
+    .references { columns: 2; column-gap: 32px; }
+    .references li { break-inside: avoid; }
+    .footer { margin-top: 24px; padding: 25px 10px; color: var(--muted); text-align: center; font-size: .86rem; }
+    .print { position: fixed; right: 18px; bottom: 18px; z-index: 30; padding: 11px 16px; color: white; border: 0; border-radius: 999px; background: var(--navy); box-shadow: 0 9px 26px rgba(23,37,84,.25); cursor: pointer; font-weight: 780; }
+
+    @media (max-width: 980px) {
+      .summary-strip { grid-template-columns: repeat(2,1fr); }
+      .summary-item:nth-child(2) { border-right: 0; }
+      .summary-item:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .architecture { grid-template-columns: 1fr; }
+      .arrow { min-height: 30px; transform: rotate(90deg); }
+      .grid-4, .grid-3, .role-band { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .boundary { grid-template-columns: 1fr; }
+      .boundary-arrow { transform: rotate(90deg); }
+    }
+    @media (max-width: 650px) {
+      .page { width: min(100% - 20px,1180px); margin-top: 10px; }
+      .hero { min-height: auto; padding: 40px 23px 72px; border-radius: 19px; }
+      .summary-strip { grid-template-columns: 1fr; margin: -35px 12px 0; }
+      .summary-item { border-right: 0; border-bottom: 1px solid var(--line); }
+      .summary-item:last-child { border-bottom: 0; }
+      nav { position: static; }
+      section { padding: 24px 19px; }
+      .grid-2, .grid-3, .grid-4, .role-band { grid-template-columns: 1fr; }
+      .checkpoint { grid-template-columns: 1fr; }
+      .checkpoint-no { width: 52px; height: 52px; border-radius: 15px; }
+      .prompt-head { align-items: flex-start; }
+      .references { columns: 1; }
+      .print { display: none; }
+    }
+    @media print {
+      @page { size: A4; margin: 14mm; }
+      body { background: white; font-size: 10.5pt; }
+      .page { width: 100%; margin: 0; }
+      .hero { min-height: auto; border-radius: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .summary-strip { margin: 12px 0; box-shadow: none; }
+      nav, .print, .copy-button { display: none; }
+      section { box-shadow: none; break-inside: avoid; }
+      .prompt-card { break-inside: auto; }
+      .card, .callout, .role, th, .checkpoint, .boundary-box { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Vibe Coding · One Pages · Firebase Practice</p>
+      <h1>AI와 대화하며 만드는<br>학생 활동 화면과 교사 대시보드</h1>
+      <p class="hero-copy">개발 경험이 많지 않은 교사가 바닐라 HTML로 하나의 GitHub Pages를 운영하면서 학생은 자기 활동을 기록하고, 교사는 제출 현황을 관찰·평가하도록 만드는 실전 가이드입니다. 완성 코드를 외우기보다 AI에게 정확한 맥락과 안전 기준을 전달하는 방법에 집중합니다.</p>
+      <div class="hero-badges">
+        <span class="hero-badge">한 Pages · 두 폴더</span>
+        <span class="hero-badge">Google 로그인</span>
+        <span class="hero-badge">Cloud Firestore 저장</span>
+        <span class="hero-badge">복사 가능한 AI 프롬프트</span>
+      </div>
+    </header>
+
+    <aside class="summary-strip" aria-label="문서 핵심 요약">
+      <div class="summary-item summary-main"><span>이 문서의 역할</span><strong>교사와 AI가 같은 설계 지도를 보게 만들기</strong></div>
+      <div class="summary-item"><span>개발 방식</span><strong>바닐라 HTML·CSS·JS</strong></div>
+      <div class="summary-item"><span>보안 중심</span><strong>Authentication + Rules</strong></div>
+      <div class="summary-item"><span>권장 진행</span><strong>작게 만들고 단계별 검증</strong></div>
+    </aside>
+
+    <nav aria-label="문서 목차">
+      <a href="#goal">목표</a>
+      <a href="#architecture">전체 구조</a>
+      <a href="#roles">역할 분담</a>
+      <a href="#files">파일 구조</a>
+      <a href="#firebase">Firebase 준비</a>
+      <a href="#data">데이터·권한</a>
+      <a href="#stages">구축 순서</a>
+      <a href="#prompts">AI 프롬프트</a>
+      <a href="#tests">완성 확인</a>
+      <a href="#next">AI 피드백 확장</a>
+    </nav>
+
+    <section id="goal">
+      <span class="section-no">01 · THE PRODUCT</span>
+      <h2>먼저 “무엇을 만들 것인가”를 고정합니다</h2>
+      <p class="lead">AI에게 기술 이름부터 나열하면 화면은 만들어져도 권한과 데이터 흐름이 흔들릴 수 있습니다. 아래 사용자 경험을 프로젝트의 기준 문장으로 사용합니다.</p>
+
+      <div class="grid grid-3 mt-22">
+        <article class="card tint-cyan"><div class="mini-icon">학생</div><h3>학생 활동 화면</h3><p>Google 계정으로 로그인하고, 자신의 활동 데이터를 입력·조회·수정·삭제합니다. 다른 학생의 데이터는 볼 수 없습니다.</p></article>
+        <article class="card tint-indigo"><div class="mini-icon">교사</div><h3>교사 대시보드</h3><p>가입 요청과 학생 제출 현황을 보고 평가·피드백을 작성합니다. 필요하면 학생 대신 데이터를 생성·수정·삭제할 수 있습니다.</p></article>
+        <article class="card tint-green"><div class="mini-icon">보호</div><h3>Firebase 데이터·권한</h3><p>Authentication이 사용자를 확인하고, Cloud Firestore가 데이터를 저장하며, Security Rules가 실제 접근을 허용하거나 거부합니다.</p></article>
+      </div>
+
+      <div class="callout good">
+        <strong>완성의 기준:</strong> 화면이 예쁘게 열리는 것이 아니라, 학생 A가 학생 B의 데이터와 교사 기능을 직접 요청해도 Firestore에서 거부되는 상태입니다.
+      </div>
+
+      <h3>이번 문서에서 다루지 않는 것</h3>
+      <ul>
+        <li>React·Vue 같은 프레임워크와 npm 빌드</li>
+        <li>Gemini·Upstage를 이용한 AI 피드백 호출</li>
+        <li>Firebase Admin SDK를 사용하는 대규모 계정 관리</li>
+        <li>성적·건강·상담 등 고위험 개인정보 시스템</li>
+      </ul>
+      <p class="fine">AI 피드백은 비밀 API 키와 학생 데이터의 외부 전송이 추가되므로, 기본 앱을 검증한 뒤 별도 확장 문서에서 다루는 편이 안전합니다.</p>
+    </section>
+
+    <section id="architecture">
+      <span class="section-no">02 · ARCHITECTURE</span>
+      <h2>하나의 배포, 두 화면, 하나의 데이터 기준</h2>
+      <p class="lead">학생과 교사는 같은 GitHub Pages 안의 서로 다른 경로를 사용합니다. 폴더는 화면과 파일을 정리하고, 실제 보안 경계는 Firebase에 둡니다.</p>
+
+      <div class="browser">
+        <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="address">https://사용자명.github.io/저장소명/</span></div>
+        <div class="browser-body">
+          <div class="architecture" role="img" aria-label="GitHub Pages 학생 교사 화면이 Firebase Authentication과 Security Rules를 거쳐 Firestore에 연결되는 구조">
+            <div class="site-shell">
+              <strong>GitHub Pages 한 곳</strong>
+              <div class="route"><strong>/student/</strong><small>학생 활동 입력·내 기록</small></div>
+              <div class="route"><strong>/teacher/</strong><small>현황·평가·피드백</small></div>
+              <div class="route"><strong>/shared/</strong><small>Firebase·공통 로그인 코드</small></div>
+            </div>
+            <div class="arrow" aria-hidden="true">→</div>
+            <div class="service-box secure"><strong>Firebase Authentication</strong><small>누구인가?</small><br><br><strong>Security Rules</strong><small>무엇을 할 수 있는가?</small></div>
+            <div class="arrow" aria-hidden="true">→</div>
+            <div class="service-box"><strong>Cloud Firestore</strong><small>회원·활동·제출물<br>평가·피드백</small></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <strong>폴더 분리는 보안이 아닙니다.</strong> 학생은 <code>/teacher/</code> 주소와 교사 JavaScript를 찾을 수 있습니다. 교사 화면 코드를 읽더라도 데이터 요청이 거부되도록 Rules를 설계해야 합니다.
+      </div>
+    </section>
+
+    <section id="roles">
+      <span class="section-no">03 · WHO DECIDES WHAT</span>
+      <h2>교사·AI·Firebase의 책임을 섞지 않습니다</h2>
+      <p class="lead">바이브 코딩의 품질은 AI에게 많은 코드를 요구하는 것보다, 누가 어떤 결정을 맡는지 분명히 하는 데서 높아집니다.</p>
+
+      <div class="role-band">
+        <div class="role teacher"><b>교사가 결정</b><span>저장할 데이터, 학생 승인 방식, 삭제 정책, 평가 기준, 개인정보 범위</span></div>
+        <div class="role ai"><b>AI가 구현·설명</b><span>파일 작성, 화면 동작, Firebase SDK 연결, 오류 처리, Rules 초안, 테스트 절차</span></div>
+        <div class="role firebase"><b>Firebase가 처리</b><span>Google 로그인, UID·토큰 발급, 데이터 저장, Rules에 따른 서버 측 허용·거부</span></div>
+      </div>
+
+      <div class="grid grid-2 mt-20">
+        <article class="card">
+          <h3>AI에게 맡겨도 좋은 것</h3>
+          <ul class="checklist">
+            <li>기존 파일을 읽고 변경 범위를 제안하기</li>
+            <li>학생·교사 화면과 공통 모듈 작성하기</li>
+            <li>Firebase Modular SDK 사용하기</li>
+            <li>권한표를 Rules 조건으로 옮기기</li>
+            <li>오류 메시지와 테스트 절차 만들기</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>교사가 확인해야 하는 것</h3>
+          <ul class="checklist avoid">
+            <li>AI가 필요 이상으로 개인정보를 저장하지 않는가?</li>
+            <li>학생·교사의 실제 권한이 요구사항과 같은가?</li>
+            <li>삭제가 즉시 삭제인지 휴지통인지 명확한가?</li>
+            <li>실제 학생 계정으로 거부 테스트를 했는가?</li>
+            <li>AI가 “안전하다”고 말한 근거가 Rules에 있는가?</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="files">
+      <span class="section-no">04 · FILE MAP</span>
+      <h2>파일은 이해하기 쉬운 책임 단위로만 나눕니다</h2>
+      <p class="lead">처음부터 파일을 지나치게 세분화하지 않습니다. 학생·교사·공통이라는 세 영역이면 출발하기에 충분합니다.</p>
+
+      <pre><code>저장소/
+├─ index.html                 # 시작 안내와 화면 이동
+├─ student/
+│  ├─ index.html             # 학생 화면
+│  ├─ student.js             # 학생 로그인·데이터 동작
+│  └─ student.css
+├─ teacher/
+│  ├─ index.html             # 교사 대시보드
+│  ├─ teacher.js             # 승인·조회·평가 동작
+│  └─ teacher.css
+└─ shared/
+   ├─ firebase.js            # Firebase 초기화와 공통 연결
+   ├─ common.js              # 공통 로그인·오류 처리
+   └─ common.css</code></pre>
+
+      <div class="grid grid-3">
+        <article class="card tint-cyan"><h3><code>student/</code></h3><p>학생에게 필요한 화면과 동작만 둡니다. 자신의 UID를 기준으로 데이터를 요청합니다.</p></article>
+        <article class="card tint-indigo"><h3><code>teacher/</code></h3><p>교사 역할을 확인한 뒤 대시보드를 불러옵니다. 화면을 열었다는 사실만으로 데이터를 요청하지 않습니다.</p></article>
+        <article class="card tint-green"><h3><code>shared/</code></h3><p>두 화면이 함께 사용하는 코드입니다. 실제 데이터가 저장되는 폴더가 아니라 Firebase 연결 모듈을 모아 둔 이름입니다.</p></article>
+      </div>
+
+      <div class="callout">
+        <strong>이름은 규칙이 아닙니다.</strong> <code>shared</code>, <code>firebase.js</code>, <code>common.js</code>는 이해를 돕기 위해 정한 이름입니다. AI가 다른 이름을 제안하면 역할이 겹치지 않는지만 확인하십시오.
+      </div>
+    </section>
+
+    <section id="firebase">
+      <span class="section-no">05 · FIREBASE FOUNDATION</span>
+      <h2>설정과 코드를 함께 준비해야 합니다</h2>
+      <p class="lead">Firebase 콘솔에서 기능을 켜는 것만으로 로그인 화면이 생기지는 않습니다. 교사는 콘솔을 설정하고, AI는 웹 페이지에서 SDK를 불러와 로그인·상태 확인 코드를 연결합니다.</p>
+
+      <div class="grid grid-2">
+        <article class="card tint-indigo">
+          <h3>교사가 Firebase 콘솔에서 할 일</h3>
+          <ol>
+            <li>Firebase 프로젝트와 웹 앱 등록</li>
+            <li>Cloud Firestore 생성과 지역 선택</li>
+            <li>Authentication에서 Google 로그인 활성화</li>
+            <li>GitHub Pages 도메인을 승인 도메인에 추가</li>
+            <li>웹 앱의 <code>firebaseConfig</code> 복사</li>
+            <li>Rules를 배포하고 테스트 모드 종료</li>
+          </ol>
+        </article>
+        <article class="card tint-cyan">
+          <h3>AI가 코드에서 할 일</h3>
+          <ol>
+            <li>공식 CDN에서 Firebase SDK 불러오기</li>
+            <li><code>initializeApp()</code>으로 공통 초기화</li>
+            <li>Google 로그인·로그아웃 연결</li>
+            <li><code>onAuthStateChanged()</code>로 상태 확인</li>
+            <li>UID와 회원 역할에 맞는 화면 표시</li>
+            <li>Firestore 오류를 사용자에게 안내</li>
+          </ol>
+        </article>
+      </div>
+
+      <h3>Config는 누가 입력하나요?</h3>
+      <p>앱 제작자가 Firebase 콘솔에서 제공되는 설정 객체를 <code>shared/firebase.js</code>에 한 번 입력합니다. 학생이나 교사가 로그인할 때마다 입력하는 값이 아닙니다.</p>
+      <pre><code>const firebaseConfig = {
+  apiKey: "Firebase 콘솔에서 복사",
+  authDomain: "Firebase 콘솔에서 복사",
+  projectId: "Firebase 콘솔에서 복사",
+  storageBucket: "Firebase 콘솔에서 복사",
+  messagingSenderId: "Firebase 콘솔에서 복사",
+  appId: "Firebase 콘솔에서 복사"
+};</code></pre>
+
+      <div class="callout good">
+        <strong>Firebase 웹 API 키는 공개 설정입니다.</strong> 프로젝트를 식별하는 값이며 관리자 비밀키가 아닙니다. 데이터 보호는 Authentication과 Security Rules가 담당합니다.
+      </div>
+      <div class="callout danger">
+        <strong>절대 넣지 않을 것:</strong> Firebase Admin 서비스 계정, <code>private_key</code>, 교사 비밀번호, Gemini·Upstage·OpenAI 비밀 API 키. GitHub Pages의 JavaScript는 방문자가 확인할 수 있습니다.
+      </div>
+
+      <h3>왜 CDN을 사용하나요?</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>방식</th><th>의미</th><th>현재 앱에 대한 판단</th></tr></thead>
+          <tbody>
+            <tr><td>Firebase CDN</td><td>브라우저가 Google 서버에서 공식 SDK를 불러옴</td><td><strong>권장 시작점</strong> · 설치와 빌드가 없음</td></tr>
+            <tr><td>npm + Vite</td><td>SDK를 설치하고 배포 파일로 빌드</td><td>앱이 커진 뒤 검토</td></tr>
+            <tr><td>REST 직접 구현</td><td>토큰·요청·오류 처리를 직접 작성</td><td>초보 프로젝트에는 권장하지 않음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fine">CDN은 앱 코드를 대신 만들어 주지 않습니다. SDK가 로그인 토큰과 Firestore 통신을 담당하고, 화면·데이터 흐름·오류 처리는 여전히 우리 JavaScript가 구현합니다.</p>
+    </section>
+
+    <section id="data">
+      <span class="section-no">06 · DATA &amp; PERMISSION MAP</span>
+      <h2>컬렉션 이름보다 먼저 권한표를 만듭니다</h2>
+      <p class="lead">데이터 구조는 앱마다 달라질 수 있지만, “누가 무엇을 할 수 있는가”는 코드 작성 전에 합의해야 합니다. 아래는 현재 프로젝트의 기본 권한입니다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>작업</th><th>해당 학생</th><th>다른 학생</th><th>교사</th></tr></thead>
+          <tbody>
+            <tr><td>학생 데이터 생성</td><td class="yes">허용</td><td class="no">거부</td><td class="yes">학생 대신 허용</td></tr>
+            <tr><td>학생 데이터 조회</td><td class="yes">자기 것 허용</td><td class="no">거부</td><td class="yes">전체 또는 담당 범위 허용</td></tr>
+            <tr><td>학생 데이터 수정</td><td class="yes">허용 필드만</td><td class="no">거부</td><td class="yes">허용</td></tr>
+            <tr><td>학생 데이터 삭제</td><td class="yes">정책에 따라 허용</td><td class="no">거부</td><td class="yes">허용</td></tr>
+            <tr><td>평가·교사 피드백 수정</td><td class="no">거부</td><td class="no">거부</td><td class="yes">허용</td></tr>
+            <tr><td>회원 역할 변경</td><td class="no">거부</td><td class="no">거부</td><td>별도 정책으로 제한</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>AI가 제안할 수 있는 기본 데이터 지도</h3>
+      <pre><code>joinRequests/{uid}        # 미리 알 수 없는 학생의 가입 요청
+members/{uid}             # 승인 여부와 student·teacher 역할
+activities/{activityId}   # 교사가 만든 활동
+submissions/{id}          # 학생 활동·제출 데이터</code></pre>
+      <p>중괄호는 실제 이름이 아니라 문서 ID의 자리표시자입니다. 예를 들어 <code>joinRequests/{uid}</code>는 <code>joinRequests</code> 컬렉션 안에 학생 UID를 문서 ID로 둔다는 뜻입니다.</p>
+
+      <div class="grid grid-2">
+        <article class="card">
+          <h3>데이터의 주인</h3>
+          <p><code>ownerUid</code>는 해당 제출물이 어느 학생의 것인지 나타냅니다. 학생 Rules의 핵심 비교값입니다.</p>
+        </article>
+        <article class="card">
+          <h3>실제 작업자</h3>
+          <p>교사가 대신 입력할 수 있다면 <code>createdByUid</code>와 <code>updatedByUid</code>로 데이터 주인과 실제 작업자를 구분합니다.</p>
+        </article>
+      </div>
+
+      <div class="callout warn">
+        <strong>삭제 정책은 코딩 전에 선택합니다.</strong> 즉시 삭제는 단순하지만 복구가 어렵습니다. 수업 기록이라면 <code>deleted: true</code>로 숨겼다가 복구하는 휴지통 방식을 AI에게 검토시킬 수 있습니다.
+      </div>
+    </section>
+
+    <section id="stages">
+      <span class="section-no">07 · BUILD IN CHECKPOINTS</span>
+      <h2>한 번에 전체 앱을 요청하지 않습니다</h2>
+      <p class="lead">AI가 한 번에 많은 파일과 Rules를 만들면 오류의 원인을 찾기 어려워집니다. 각 단계가 실제 브라우저에서 작동하는지 확인한 뒤 다음 단계로 이동합니다.</p>
+
+      <div class="checkpoint">
+        <div class="checkpoint-no">01</div>
+        <div><h3>정적 화면과 경로</h3><p>학생·교사 폴더와 기본 화면을 만들고 GitHub Pages에서 두 주소가 열리는지 확인합니다.</p><span class="done">통과 조건 · 두 경로가 모바일과 PC에서 열림</span></div>
+      </div>
+      <div class="checkpoint">
+        <div class="checkpoint-no">02</div>
+        <div><h3>Firebase 연결과 Google 로그인</h3><p>Config, CDN SDK, 로그인·로그아웃, 인증 상태 표시만 연결합니다. 아직 복잡한 데이터 기능을 넣지 않습니다.</p><span class="done">통과 조건 · 새로고침 후 로그인 상태 확인</span></div>
+      </div>
+      <div class="checkpoint">
+        <div class="checkpoint-no">03</div>
+        <div><h3>가입 요청과 역할</h3><p>미승인 사용자는 가입 요청만 보내고, 교사가 승인한 학생과 교사만 각 화면에 들어가도록 합니다.</p><span class="done">통과 조건 · 미승인 계정은 데이터에 접근 못함</span></div>
+      </div>
+      <div class="checkpoint">
+        <div class="checkpoint-no">04</div>
+        <div><h3>학생 CRUD와 교사 대시보드</h3><p>학생 자기 데이터와 교사 전체 현황을 연결합니다. 기능마다 로딩·성공·실패 상태를 확인합니다.</p><span class="done">통과 조건 · 권한표대로 생성·조회·수정·삭제</span></div>
+      </div>
+      <div class="checkpoint">
+        <div class="checkpoint-no">05</div>
+        <div><h3>Rules와 우회 테스트</h3><p>학생이 다른 UID와 교사 코드를 직접 요청하는 상황을 시험합니다. 화면 테스트가 아니라 Firestore의 거부 결과를 확인합니다.</p><span class="done">통과 조건 · 잘못된 요청은 permission-denied</span></div>
+      </div>
+
+      <div class="callout">
+        <strong>AI와의 작업 규칙:</strong> 매 단계에서 “변경할 파일, 변경 이유, 교사가 해야 할 콘솔 작업, 성공 확인 방법”을 먼저 설명하게 하십시오. 기존 파일 전체를 매번 다시 만들게 하지 않는 편이 안전합니다.
+      </div>
+    </section>
+
+    <section id="prompts">
+      <span class="section-no">08 · COPY &amp; PASTE PROMPT KIT</span>
+      <h2>AI에게는 한 단계씩 요청합니다</h2>
+      <p class="lead">첫 프롬프트는 프로젝트의 헌법이고, 이후 프롬프트는 단계별 작업 지시입니다. 대괄호 부분만 현재 상황에 맞게 바꾸십시오.</p>
+
+      <article class="prompt-card">
+        <header class="prompt-head"><div><strong>프롬프트 1 · 프로젝트 맥락과 작업 방식 전달</strong><small>새 대화의 첫 메시지로 사용</small></div><button class="copy-button" type="button" data-copy-target="prompt-1">복사</button></header>
+        <div class="prompt-body"><pre id="prompt-1"><code>나는 개발 경험이 많지 않은 교사이며, AI와 대화하면서 수업용 웹 앱을 만들려고 합니다.
+
+[기본 환경]
+- 바닐라 HTML, CSS, JavaScript를 사용합니다.
+- React, Vue, npm 빌드 도구는 지금 사용하지 않습니다.
+- GitHub 저장소 하나를 GitHub Pages 한 곳으로 배포합니다.
+- student 폴더와 teacher 폴더에 서로 다른 화면을 둡니다.
+- shared 폴더에는 두 화면이 함께 쓰는 Firebase와 공통 코드를 둡니다.
+- Firebase Authentication의 Google 로그인을 사용합니다.
+- Cloud Firestore에 데이터를 저장하고 Security Rules로 권한을 검사합니다.
+
+[사용자 경험]
+- 학생은 student 화면에서 자신의 활동 데이터를 생성, 조회, 수정, 삭제합니다.
+- 학생은 다른 학생의 데이터를 볼 수 없습니다.
+- 교사는 teacher 대시보드에서 학생들의 제출 현황을 보고 평가와 피드백을 작성합니다.
+- 교사는 필요한 경우 학생 대신 데이터를 생성, 수정, 삭제할 수 있습니다.
+- Google 로그인 성공과 학생·교사 권한은 별도로 판단해야 합니다.
+- 불특정 학생은 로그인 후 가입 요청을 보내고, 교사가 승인한 뒤 사용하게 하는 흐름을 우선 검토해 주세요.
+
+[AI와 작업하는 방식]
+- 전체 앱을 한 번에 만들지 말고 화면, 로그인, 회원 승인, 데이터, Rules, 테스트 순서로 나누어 주세요.
+- 각 단계에서 코드를 작성하기 전에 목적, 변경 파일, 교사가 Firebase 콘솔에서 할 일을 쉬운 말로 설명해 주세요.
+- 기존 파일이 있다면 먼저 읽고 필요한 부분만 수정해 주세요.
+- 선택지가 있으면 가장 단순한 권장안을 먼저 제시하고 다른 선택은 짧게 비교해 주세요.
+- 코드에 Firebase Admin 서비스 계정, 교사 비밀번호, 외부 AI API 비밀키를 넣지 마세요.
+- 클라이언트 화면의 역할 검사만으로 안전하다고 판단하지 말고 Firestore Rules에서 같은 권한을 다시 검사해 주세요.
+- 실행하지 않은 테스트를 실행했다고 말하지 말고, 내가 확인할 절차를 알려 주세요.
+
+우선 코드를 작성하지 말고 다음 네 가지를 보여 주세요.
+1. 이해한 앱의 목표
+2. 권장 폴더 구조
+3. 학생·교사 권한표
+4. 구현 전에 내가 결정해야 할 질문 5개 이내</code></pre></div>
+        <div class="prompt-tip">AI의 첫 답변에서 요구사항이 잘못 이해되었다면 코드 작성 전에 바로 수정하십시오.</div>
+      </article>
+
+      <article class="prompt-card">
+        <header class="prompt-head"><div><strong>프롬프트 2 · Firebase 연결과 Google 로그인</strong><small>정적 화면이 정상적으로 열린 다음 사용</small></div><button class="copy-button" type="button" data-copy-target="prompt-2">복사</button></header>
+        <div class="prompt-body"><pre id="prompt-2"><code>이제 Firebase 연결과 Google 로그인 단계만 구현해 주세요. 아직 학생 활동 CRUD와 교사 대시보드 데이터는 구현하지 않습니다.
+
+- 공식 Firebase JavaScript SDK의 브라우저용 CDN 모듈을 사용해 주세요.
+- 모든 Firebase import는 같은 고정 버전을 사용해 주세요.
+- shared/firebase.js는 Firebase 초기화, Authentication, Firestore 연결을 담당하게 해 주세요.
+- shared/common.js는 Google 로그인, 로그아웃, onAuthStateChanged 기반 상태 관찰을 담당하게 해 주세요.
+- Firebase 콘솔의 config 값을 붙여 넣을 위치는 명확한 자리표시자로 남겨 주세요.
+- firebaseConfig의 웹 API 키는 공개 설정이지만 Admin 서비스 계정과 외부 API 키는 넣으면 안 된다고 주석으로 설명해 주세요.
+- student와 teacher 화면에 로그인 중, 로그인 필요, 로그인 완료, 오류 상태를 구분해 주세요.
+- 인증 상태가 확인되기 전에 학생 또는 교사 데이터를 요청하지 마세요.
+- teacher 화면을 열었다는 이유만으로 교사라고 판단하지 마세요.
+- GitHub Pages의 저장소 경로에서도 작동하도록 상대 경로를 확인해 주세요.
+
+답변 순서:
+1. Firebase 콘솔에서 내가 해야 할 설정
+2. 변경할 파일과 이유
+3. 변경한 파일의 완전한 코드
+4. 로컬과 GitHub Pages에서 확인할 로그인 테스트
+
+내 실제 firebaseConfig 값은 공개 채팅에 다시 출력하지 말고, 내가 로컬 파일에 직접 붙여 넣을 수 있도록 위치만 안내해 주세요.</code></pre></div>
+        <div class="prompt-tip">교사는 Google 로그인 제공자 활성화와 승인 도메인 등록을 직접 해야 합니다. 설정만으로는 로그인 버튼이 생기지 않습니다.</div>
+      </article>
+
+      <article class="prompt-card">
+        <header class="prompt-head"><div><strong>프롬프트 3 · 가입 승인과 학생·교사 데이터</strong><small>로그인이 안정적으로 작동한 다음 사용</small></div><button class="copy-button" type="button" data-copy-target="prompt-3">복사</button></header>
+        <div class="prompt-body"><pre id="prompt-3"><code>Google 로그인까지 정상 작동합니다. 이제 회원 승인과 수업 데이터를 구현해 주세요.
+
+[회원 흐름]
+- 학생은 미리 특정 Workspace에 등록되어 있지 않고 개인 Google 계정을 사용할 수 있습니다.
+- 로그인했다고 바로 승인된 학생으로 취급하지 않습니다.
+- 미승인 사용자는 자신의 UID로 가입 요청을 한 번만 만들 수 있게 해 주세요.
+- 교사는 대시보드에서 가입 요청을 보고 학생으로 승인하거나 비활성화할 수 있게 해 주세요.
+- 학생이 자신의 role이나 active 값을 바꿀 수 없어야 합니다.
+- 초기 교사 계정을 어떻게 등록하는지 Firebase 콘솔 절차를 설명해 주세요.
+
+[수업 데이터]
+- 학생은 자신의 활동 데이터를 생성, 조회, 수정, 삭제합니다.
+- 학생 데이터에는 소유 학생을 나타내는 ownerUid가 있어야 합니다.
+- 교사가 학생 대신 작업할 수 있으므로 createdByUid와 updatedByUid 같은 작업자 기록을 검토해 주세요.
+- 학생은 다른 학생 데이터와 교사 평가 필드를 변경할 수 없어야 합니다.
+- 교사는 전체 또는 담당 범위의 학생 데이터를 조회하고 생성, 수정, 삭제하며 평가와 피드백을 작성할 수 있습니다.
+- 학생 쿼리는 자신의 UID 조건을 포함해야 합니다.
+
+[작업 방식]
+- joinRequests, members, activities, submissions 같은 컬렉션 이름은 권장안으로 설명한 뒤 사용해 주세요.
+- 한 활동당 제출 하나인지 여러 개인지 먼저 물어보고 addDoc과 setDoc 중 맞는 방식을 선택해 주세요.
+- 삭제는 즉시 삭제와 휴지통 방식의 차이를 설명하고 내 선택을 받은 뒤 구현해 주세요.
+- 화면 코드와 Rules에서 각각 무엇을 검사하는지 구분해 주세요.
+- 이번 단계에서도 변경 파일과 성공 확인 방법을 먼저 설명해 주세요.
+
+먼저 데이터 구조와 권한표를 보여 주고 내 확인을 받은 뒤 코드를 작성해 주세요.</code></pre></div>
+        <div class="prompt-tip">AI가 제안한 컬렉션과 필드는 바꿀 수 있습니다. 중요한 것은 UID·역할·소유권이 일관되게 연결되는지입니다.</div>
+      </article>
+
+      <article class="prompt-card">
+        <header class="prompt-head"><div><strong>프롬프트 4 · Rules와 공격 관점 검토</strong><small>기능이 작동한 뒤 마지막으로 사용</small></div><button class="copy-button" type="button" data-copy-target="prompt-4">복사</button></header>
+        <div class="prompt-body"><pre id="prompt-4"><code>현재 앱의 전체 파일과 Firestore Rules를 보안 관점에서 검토해 주세요.
+
+화면에서 버튼이 숨겨지는지가 아니라, 사용자가 개발자 도구나 직접 Firebase 요청으로 우회했을 때 Firestore가 거부하는지를 기준으로 판단해 주세요.
+
+다음을 확인해 주세요.
+1. 비로그인 사용자의 모든 수업 데이터 요청이 거부되는가?
+2. 로그인했지만 미승인인 사용자는 가입 요청 외의 데이터에 접근할 수 없는가?
+3. 학생 A가 학생 B의 데이터를 읽거나 수정하거나 삭제할 수 없는가?
+4. 학생이 ownerUid를 다른 UID로 바꾸어 생성할 수 없는가?
+5. 학생이 role, active, teacherFeedback 같은 관리 필드를 변경할 수 없는가?
+6. 학생이 teacher 화면의 조회·수정 코드를 직접 실행해도 거부되는가?
+7. 교사만 가입 승인과 학생 전체 데이터 작업을 할 수 있는가?
+8. 교사가 학생 대신 데이터를 생성할 때 대상 학생과 작업자 정보가 구분되는가?
+9. 허용하지 않은 필드와 잘못된 자료형·길이가 거부되는가?
+10. Rules에 테스트 모드나 allow read, write: if true가 남아 있지 않은가?
+11. 여러 match 규칙이 겹쳐 넓은 권한을 허용하지 않는가?
+12. GitHub Pages 코드에 Admin 서비스 계정이나 외부 API 비밀키가 없는가?
+
+결과는 사용자 유형별 허용·거부 표로 보여 주세요. 문제가 있다면 관련 파일, 위험, 최소 수정안을 설명하고 변경할 파일의 전체 코드를 제공해 주세요.
+
+실제로 실행하지 못한 검사는 실행했다고 말하지 말고 Firebase Emulator 또는 수동 테스트 절차를 제공해 주세요.</code></pre></div>
+        <div class="prompt-tip">AI의 “문제없음”보다 학생 A·학생 B·미승인·교사 계정으로 직접 확인한 결과를 신뢰하십시오.</div>
+      </article>
+
+      <article class="prompt-card">
+        <header class="prompt-head"><div><strong>프롬프트 5 · 오류를 고칠 때</strong><small>앱 전체 재작성을 막는 짧은 요청문</small></div><button class="copy-button" type="button" data-copy-target="prompt-5">복사</button></header>
+        <div class="prompt-body"><pre id="prompt-5"><code>현재 앱에서 다음 오류가 발생합니다.
+
+[오류 메시지]
+여기에 브라우저 콘솔 또는 Firebase 오류를 그대로 붙여 넣기
+
+[오류가 발생하는 순서]
+1. [첫 번째 단계]
+2. [두 번째 단계]
+3. [오류가 발생한 단계]
+
+[예상한 결과]
+
+[관련 파일]
+여기에 관련 HTML, JavaScript 또는 Rules 첨부
+
+전체 앱을 새로 만들지 말고 다음 순서로 도와주세요.
+1. 가장 가능성이 높은 원인 3개 이내
+2. 확인할 위치와 확인 방법
+3. 최소 변경안
+4. 변경 후 재현 테스트
+
+추측만으로 Firebase 설정이나 데이터 구조를 바꾸지 말고, 정보가 부족하면 먼저 질문해 주세요.</code></pre></div>
+        <div class="prompt-tip">오류 메시지에서 API 키·서비스 계정·개인정보가 보이면 가린 뒤 전달하십시오.</div>
+      </article>
+    </section>
+
+    <section id="tests">
+      <span class="section-no">09 · ACCEPTANCE TEST</span>
+      <h2>교사가 직접 확인할 최소 통과 기준</h2>
+      <p class="lead">아래 항목은 AI가 코드를 완성했다고 말하는 것과 별개로 실제 계정과 브라우저에서 확인합니다. 체크 상태는 이 브라우저에만 저장됩니다.</p>
+
+      <div class="progress-list" id="progress-list">
+        <label class="progress-item"><input type="checkbox" data-check="pages"><span><strong>두 화면 주소</strong><small><code>/student/</code>와 <code>/teacher/</code>를 직접 열고 새로고침해도 정상입니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="auth"><span><strong>Google 로그인·로그아웃</strong><small>로그인 상태가 새로고침 뒤 복원되고 로그아웃하면 데이터 화면이 사라집니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="pending"><span><strong>미승인 사용자</strong><small>개인 Google 계정으로 로그인해도 가입 요청 외에는 데이터에 접근하지 못합니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="student-a"><span><strong>학생 A 자기 데이터</strong><small>자기 활동을 생성·조회·수정·삭제할 수 있습니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="student-b"><span><strong>학생 간 격리</strong><small>학생 A가 학생 B의 문서 ID를 알아도 읽기·수정·삭제가 거부됩니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="teacher"><span><strong>교사 대시보드</strong><small>등록된 교사만 전체 현황과 평가 기능을 사용합니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="teacher-crud"><span><strong>교사 대리 작업</strong><small>교사가 학생 대신 생성·수정·삭제할 때 ownerUid와 작업자가 올바르게 기록됩니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="rules"><span><strong>직접 요청 거부</strong><small>학생이 교사 코드를 복사해 실행해도 Firestore에서 <code>permission-denied</code>가 발생합니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="secrets"><span><strong>비밀정보 없음</strong><small>정적 코드와 Git 기록에 Admin 자격 증명·교사 암호·외부 AI API 키가 없습니다.</small></span></label>
+        <label class="progress-item"><input type="checkbox" data-check="privacy"><span><strong>개인정보·삭제 정책</strong><small>저장 항목, 접근자, 보존 기간과 삭제·복구 방법을 교사가 설명할 수 있습니다.</small></span></label>
+      </div>
+
+      <div class="callout danger">
+        <strong>사용 중단 조건:</strong> Rules가 테스트 모드이거나 학생 간 데이터 접근이 한 번이라도 허용되면 실제 수업 배포를 멈추고 권한부터 수정합니다.
+      </div>
+    </section>
+
+    <section id="next">
+      <span class="section-no">10 · WHERE THIS GUIDE STOPS</span>
+      <h2>AI 피드백은 기본 앱을 검증한 뒤 별도로 확장합니다</h2>
+      <p class="lead">Gemini 또는 Upstage를 붙이는 순간 외부 API 키, 학생 답안의 외부 전송, 비용·호출 제한과 AI 결과 검토라는 새로운 문제가 생깁니다. 현재 문서에서는 연결 지점만 남깁니다.</p>
+
+      <div class="boundary" role="img" aria-label="현재 Firebase 기본 앱과 다음 AI 피드백 확장 문서의 경계">
+        <div class="boundary-box current"><h3>현재 가이드에서 완성</h3><ul><li>화면·경로</li><li>Google 로그인과 역할</li><li>학생·교사 CRUD</li><li>Firestore Rules</li><li>권한 공격 테스트</li></ul></div>
+        <div class="boundary-arrow" aria-hidden="true">→</div>
+        <div class="boundary-box next"><h3>다음 AI 확장 가이드</h3><ul><li>서버 측 API 호출</li><li>Gemini·Upstage 키 보호</li><li>개인정보 최소 전송</li><li>비용·속도 제한</li><li>교사 검토 후 공개</li></ul></div>
+      </div>
+
+      <div class="callout danger">
+        <strong>미리 지킬 한 가지:</strong> Gemini·Upstage API 키를 <code>shared/firebase.js</code>, 학생 JavaScript, 교사 JavaScript 또는 GitHub 저장소에 넣지 않습니다. Firebase 웹 API 키와 외부 AI API 키는 성격이 다릅니다.
+      </div>
+    </section>
+
+    <section class="final-box">
+      <span class="section-no final-label">11 · FINAL DIRECTION</span>
+      <h2>교사는 코드를 외우는 사람이 아니라 기준을 지키는 운영자입니다</h2>
+      <p class="lead">AI가 코드를 작성하더라도 학생 데이터의 범위와 권한, 삭제 정책과 실제 테스트는 교사가 확인해야 합니다. 아래 네 문장만 흔들리지 않으면 구현 세부는 단계적으로 개선할 수 있습니다.</p>
+      <div class="grid grid-4 mt-20">
+        <article class="card"><h3>화면 ≠ 권한</h3><p>경로와 버튼은 편의를 위한 것이고, 보안은 Rules에서 완성합니다.</p></article>
+        <article class="card"><h3>로그인 ≠ 교사</h3><p>Google 로그인 후에도 승인 상태와 역할을 별도로 확인합니다.</p></article>
+        <article class="card"><h3>소유자 ≠ 작업자</h3><p>교사가 대신 입력한다면 데이터 주인과 실제 작업자를 구분합니다.</p></article>
+        <article class="card"><h3>완성 ≠ 검증</h3><p>학생 A·학생 B·미승인·교사 계정으로 거부 결과를 직접 확인합니다.</p></article>
+      </div>
+    </section>
+
+    <section id="references">
+      <span class="section-no">12 · OFFICIAL REFERENCES</span>
+      <h2>설정이 달라졌을 때 확인할 공식 문서</h2>
+      <ul class="references">
+        <li><a href="https://docs.github.com/pages" target="_blank" rel="noreferrer">GitHub Pages 공식 문서</a></li>
+        <li><a href="https://firebase.google.com/docs/web/setup" target="_blank" rel="noreferrer">Firebase 웹 앱 설정</a></li>
+        <li><a href="https://firebase.google.com/docs/auth/web/google-signin" target="_blank" rel="noreferrer">Firebase Google 로그인</a></li>
+        <li><a href="https://firebase.google.com/docs/auth/web/manage-users" target="_blank" rel="noreferrer">Firebase 사용자 상태 관리</a></li>
+        <li><a href="https://firebase.google.com/docs/firestore" target="_blank" rel="noreferrer">Cloud Firestore 시작하기</a></li>
+        <li><a href="https://firebase.google.com/docs/firestore/security/get-started" target="_blank" rel="noreferrer">Firestore Security Rules</a></li>
+        <li><a href="https://firebase.google.com/docs/firestore/security/rules-query" target="_blank" rel="noreferrer">Rules와 쿼리 조건</a></li>
+        <li><a href="https://firebase.google.com/docs/projects/api-keys" target="_blank" rel="noreferrer">Firebase API 키 이해하기</a></li>
+        <li><a href="https://firebase.google.com/docs/emulator-suite" target="_blank" rel="noreferrer">Firebase Local Emulator Suite</a></li>
+      </ul>
+    </section>
+
+    <footer class="footer">바이브 코딩으로 만드는 학생·교사 Firebase 웹 앱 실전 가이드 · GitHub Pages + Authentication + Firestore · 2026</footer>
+  </main>
+
+  <button class="print" type="button" onclick="window.print()" aria-label="문서 인쇄 또는 PDF 저장">인쇄 · PDF 저장</button>
+
+  <script>
+    (() => {
+      const copyButtons = document.querySelectorAll('[data-copy-target]');
+
+      copyButtons.forEach(button => {
+        button.addEventListener('click', async () => {
+          const target = document.getElementById(button.dataset.copyTarget);
+          if (!target) return;
+
+          const text = target.innerText.trim();
+
+          try {
+            await navigator.clipboard.writeText(text);
+            button.textContent = '복사됨';
+            button.classList.add('copied');
+          } catch (_) {
+            const range = document.createRange();
+            range.selectNodeContents(target);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            button.textContent = '선택됨 · 직접 복사';
+          }
+
+          window.setTimeout(() => {
+            button.textContent = '복사';
+            button.classList.remove('copied');
+          }, 1800);
+        });
+      });
+
+      const checks = document.querySelectorAll('[data-check]');
+      const storageKey = 'firebase-vibe-guide-checks-v1';
+      let saved = {};
+
+      try {
+        saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      } catch (_) {
+        saved = {};
+      }
+
+      checks.forEach(check => {
+        check.checked = Boolean(saved[check.dataset.check]);
+        check.addEventListener('change', () => {
+          saved[check.dataset.check] = check.checked;
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(saved));
+          } catch (_) {
+            // 문서는 저장소 접근이 막힌 환경에서도 그대로 사용할 수 있습니다.
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
